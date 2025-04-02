@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "target": "es2023",
+        "module": "node16",
+        "moduleResolution": "node16",
+        "isolatedModules": true,
+        "resolveJsonModule": true,
+
+        "strict": true,
+        "noUnusedLocals": true,
+        "noImplicitReturns": true,
+        "allowUnusedLabels": true,
+        "noImplicitOverride": true,
+        "noUnusedParameters": true,
+        "verbatimModuleSyntax": true,
+        "allowUnreachableCode": true,
+        "noUncheckedIndexedAccess": true,
+        "allowSyntheticDefaultImports": true,
+
+        "paths": {
+            "#src/*": [
+                "./src/*"
+            ]
+        }
+    },
+
+    "include": [
+        "./src/**/*",
+        "./test/**/*"
+    ]
+}

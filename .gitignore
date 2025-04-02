@@ -1,0 +1,7 @@
+/build/
+/.config/
+/node_modules/
+
+bun.lock
+yarn.lock
+package-lock.json
