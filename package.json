@@ -3,11 +3,16 @@
     "type": "module",
     "version": "1.0.0",
     "description": "Atomic Storage definition and implementation",
+    "homepage": "https://github.com/qlwt/atom-state-core#readme",
     "keywords": ["storage", "global", "state", "atomic"],
     "license": "MIT",
     "files": [
         "./build/**/*"
     ],
+    "repository": {
+        "type": "git",
+        "url": "github:qlwt/atom-state-core"
+    },
     "scripts": {
         "build": "run-s build:clear build:rollup",
         "build:clear": "rimraf ./build",
