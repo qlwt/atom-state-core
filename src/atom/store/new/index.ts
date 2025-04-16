@@ -11,6 +11,30 @@ export const atomstore_new = function(): AtomStore {
             return map.keys()
         },
 
+        delete: atomvalue => {
+            map.delete(atomvalue)
+        },
+
+        set_hard: (atomvalue, value) => {
+            map.set(atomvalue, value)
+        },
+
+        set_soft: (atomvalue, value) => {
+            if (!map.has(atomvalue)) {
+                map.set(atomvalue, value)
+            }
+        },
+
+        reg_default: <T>(atomvalue: AtomValue<T>, value: T): T => {
+            if (!map.has(atomvalue)) {
+                map.set(atomvalue, value)
+
+                return value
+            }
+
+            return map.get(atomvalue) as T
+        },
+
         entries: () => {
             return map.entries() as MapIterator<Entry>
         },

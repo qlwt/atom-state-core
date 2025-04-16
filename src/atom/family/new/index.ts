@@ -37,6 +37,34 @@ export const atomfamily_new = function <P extends readonly unknown[], V>(
                     map.set(key, value)
                 })
             },
+
+            delete: (...reg_params: P) => {
+                map.delete(params.key(...reg_params))
+            },
+
+            set_soft: (...reg_params: P) => (value: V) => {
+                const key = params.key(...reg_params)
+
+                if (!map.has(key)) {
+                    map.set(key, value)
+                }
+            },
+
+            set_hard: (...reg_params: P) => (value: V) => {
+                map.set(params.key(...reg_params), value)
+            },
+
+            reg_default: (...reg_params: P) => (value: V) => {
+                const key = params.key(...reg_params)
+
+                if (map.has(key)) {
+                    return map.get(key) as V
+                }
+
+                map.set(key, value)
+
+                return value
+            },
         }
     })
 }
