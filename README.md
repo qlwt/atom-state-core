@@ -165,6 +165,50 @@ remote.input(api_request())
 // in 0.5 seconds will pring "Hello World"
 ```
 
+## Atom RemReq
+
+Made to hold request state. Intended to be used as tracker for requests or optimistic updates
+
+```typescript
+const remreq = store.reg(atomremreq_new())
+
+const api = function () {
+    let interrupted = false
+    let reject: VoidFunction | undefined = undefined
+
+    return {
+        data: {
+            name: "John Smith",
+        },
+
+        abort: () => {
+            interrupted = true
+
+            reject?.()
+
+            console.log("aborted")
+        },
+
+        promise: new Promise((res, rej) => {
+            reject = rej
+
+            setTimeout(() => {
+                if (!interrupted) { resolve() }
+            }, 500)
+        })
+    }
+}
+
+// will register request with data
+remreq.input(api())
+
+// { name: "John Smith" }
+console.log(remreq.output().data)
+
+// interrupts previous request
+remreq.input(api())
+```
+
 ## Atom Selector Remote Data
 
 Utility selector to get data from remotedata
