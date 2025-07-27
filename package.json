@@ -38,6 +38,6 @@
     },
     "dependencies": {
         "tslib": "^2.6.3",
-        "@qyu/signal-core": "^1.0.0"
+        "@qyu/signal-core": "^1.2.0"
     }
 }
