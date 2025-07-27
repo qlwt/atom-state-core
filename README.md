@@ -121,26 +121,26 @@ const selector = atomfamily_sel_child({
 console.log(store.reg(selector))
 ```
 
-## Atom Remote
+## Atom RemState
 
 Represents Remote State
 
 ```typescript
-// reqphase is a special state that exists in three different variants: empty, pending, fulfilled
+// reqstate is a special state that exists in three different variants: empty, pending, fulfilled
 // it's pretty intuitive and this section has enough examples of usage with commets
-const atomremote = atomremote_new<string>(store => reqphase_new_empty())
+const atomremote = atomremstate_new<string>(store => reqstate_new_empty())
 
 const remote = store.reg(atomremote)
 
 const api_request = () => {
     let id: Timer
 
-    return reqphase_new_pending<string>({
+    return reqstate_new_pending<string>({
         promise: new Promise(resolve => {
             id = setTimeout(
                 () => {
-                    // may resolve with any kind of reqphase emptying state, initiating new request or fulfilling
-                    resolve(reqphase_new_fulfilled("Hello World"))
+                    // may resolve with any kind of reqstate emptying state, initiating new request or fulfilling
+                    resolve(reqstate_new_fulfilled("Hello World"))
                 },
                 500
             )
@@ -152,8 +152,8 @@ const api_request = () => {
 
 remote.addsub(() => {
     console.log(
-        // extract data from reqphase, use null on fallback, second paramter is set on default
-        reqphase_data(remote.output(), () => null)
+        // extract data from reqstate, use null on fallback, second paramter is set on default
+        reqstate_data(remote.output(), () => null)
     )
 })
 
@@ -170,9 +170,9 @@ remote.input(api_request())
 Utility selector to get data from remotedata
 
 ```typescript
-const atomremote = atomremote_new<string>(() => reqphase_new_empty())
+const atomremote = remstate_new<string>(() => reqstate_new_empty())
 // second argument is fallback value, it's optional and () => null by default
-const atomremote_data = atomselector_new_remotedata(atomremote, () => null)
+const atomremote_data = remstate_sel_data(atomremote, () => null)
 
 const remote = store.reg(atomremote)
 const remote_data = store.reg(atomremote_data)
@@ -181,9 +181,9 @@ remote_data.addsub(() => {
     console.log(remote_data.output())
 })
 
-remote.input(reqphase_new_empty())
-remote.input(reqphase_new_fulfilled("Hello World"))
-remote.input(reqphase_new_empty())
+remote.input(reqstate_new_empty())
+remote.input(reqstate_new_fulfilled("Hello World"))
+remote.input(reqstate_new_empty())
 ```
 
 ## Atom Loader
@@ -197,7 +197,7 @@ Example with requesting user data
 
 ```typescript
 const atomstate_id = atomstate_new<number>(() => 0)
-const atomremote = atomremote_new<string>(() => reqphase_new_empty())
+const atomremote = atomremstate_new<string>(() => reqstate_new_empty())
 
 // fake api request
 const api_request_user = function (id: number, signal: AbortSignal): Promise<string> {
@@ -205,7 +205,7 @@ const api_request_user = function (id: number, signal: AbortSignal): Promise<str
         let timer: Timer
 
         const interrupt = () => {
-            resolve(reqphase_new_empty())
+            resolve(reqstate_new_empty())
 
             clearTimeout(timer)
             signal.removeEventListener("abort", interrupt)
@@ -247,9 +247,9 @@ const atomloader = atomloader_new_pure({
                 const abortcontroller = new AbortController()
                 const promise = api_request_user(id, abortcontroller.signal)
                 // adapt promise for expected format
-                const promise_wrapped = promise.then(reqphase_new_fulfilled).catch(reqphase_new_empty)
+                const promise_wrapped = promise.then(reqstate_new_fulfilled).catch(reqstate_new_empty)
 
-                remote.input(reqphase_new_pending({
+                remote.input(reqstate_new_pending({
                     promise: promise_wrapped,
                     abort: () => abortcontroller.abort()
                 }))
@@ -265,7 +265,7 @@ const loader = store.reg(atomloader)
 const state_id = store.reg(atomstate_id)
 
 remote.addsub(() => {
-    console.log(asc.reqphase_data(remote.output()))
+    console.log(asc.reqstate_data(remote.output()))
 })
 
 // will start request for initial value of id
