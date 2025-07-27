@@ -112,7 +112,7 @@ const atomfamily = atomfamily_new({
     key: (a: number, b: number) => `${a} ${b}`
 })
 
-const selector = atomselector_new_child({
+const selector = atomfamily_sel_child({
     params: [10, 15],
     family: atomfamily
 })

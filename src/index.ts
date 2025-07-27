@@ -26,9 +26,9 @@ export * from "#src/atom/remstate/sel/data.js"
 
 export * from "#src/atom/family/type/AtomFamily.js"
 export * from "#src/atom/family/new/index.js"
+export * from "#src/atom/family/sel/child.js"
 
 export * from "#src/atom/selector/type/AtomSelector.js"
-export * from "#src/atom/selector/new/child.js"
 
 export * from "#src/atom/loader/type/AtomLoader.js"
 export * from "#src/atom/loader/new/pure.js"
