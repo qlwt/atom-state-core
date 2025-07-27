@@ -1,20 +1,52 @@
 import type { AtomValue } from "#src/atom/value/type/AtomValue.js"
+import type * as sc from "@qyu/signal-core"
 
-export type AtomFamily_Value_Params<P extends readonly any[], V> = {
+export type AtomFamily_EntryChangeEvent<V> = (
+    | Readonly<{
+        type: "post"
+
+        key: unknown
+        value_next: V
+    }>
+    | Readonly<{
+        type: "delete"
+
+        key: unknown
+        value_prev: V
+    }>
+    | Readonly<{
+        type: "patch"
+
+        key: unknown
+        value_prev: V
+        value_next: V
+    }>
+)
+
+export type AtomFamily_Value_Params<P, V> = {
     readonly value: V
     readonly params: P
 }
 
-export type AtomFamily_Value<P extends readonly any[], V> = {
-    readonly reg: (...params: P) => V
-    readonly delete: (...params: P) => void
-    readonly reg_default: (...params: P) => (value: V) => V
-    readonly set_hard: (...params: P) => (value: V) => void
-    readonly set_soft: (...params: P) => (value: V) => void
+export type AtomFamily_Value<P, V> = Readonly<{
+    // core
+    reg: (param: P) => V
+    reg_default: (param: P, value: V) => V
 
-    readonly has: (key: unknown) => boolean
-    readonly keys: () => MapIterator<unknown>
-    readonly entries: () => MapIterator<[unknown, V]>
-}
+    // meta
+    key: (param: P) => unknown
 
-export type AtomFamily<P extends readonly any[], V> = AtomValue<AtomFamily_Value<P, V>>
+    // meta.actions
+    has: (key: unknown) => boolean
+    delete: (key: unknown) => void
+    set_hard: (key: unknown, value: V) => void
+    set_soft: (key: unknown, value: V) => void
+    get: (key: unknown) => { result: V } | null
+
+    // meta.trackers
+    entries_signal: () => sc.OSignal<[unknown, V][]>
+    entries_event_change_rmsub: (listener: (action: AtomFamily_EntryChangeEvent<V>) => void) => void
+    entries_event_change_addsub: (listener: (action: AtomFamily_EntryChangeEvent<V>) => void) => void
+}>
+
+export type AtomFamily<P, V> = AtomValue<AtomFamily_Value<P, V>>
