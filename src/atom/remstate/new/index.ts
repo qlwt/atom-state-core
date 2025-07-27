@@ -1,0 +1,75 @@
+import type { AtomRemState } from "#src/atom/remstate/type/AtomRemote.js";
+import type { AtomSelectorStatic } from "#src/atom/selector/type/AtomSelector.js";
+import { atomvalue_new } from "#src/atom/value/new/index.js";
+import { reqstate_new_empty } from "#src/reqstate/new/empty.js";
+import { reqstate_new_pending } from "#src/reqstate/new/pending.js";
+import { ReqState__Status, type ReqState, type ReqState_Pending } from "#src/reqstate/type/State.js";
+import * as sc from "@qyu/signal-core";
+
+export const atomremstate_new = function <T, PR, PM>(init: AtomSelectorStatic<ReqState<T>>): AtomRemState<T, PR, PM> {
+    return atomvalue_new(store => {
+        const state = sc.signal_new_value(init(store))
+
+        const promise_wrap = (input: ReqState_Pending<T>): ReqState<T> => {
+            let interrupted = false
+
+            input.request_promise.then(
+                next_reqstate => {
+                    if (interrupted) { return }
+
+                    switch (next_reqstate.status) {
+                        case ReqState__Status.Empty:
+                        case ReqState__Status.Fulfilled: {
+                            state.input(next_reqstate)
+
+                            break
+                        }
+                        case ReqState__Status.Pending: {
+                            state.input(promise_wrap(next_reqstate))
+
+                            break
+                        }
+                    }
+                },
+                () => {
+                    if (interrupted) { return }
+
+                    state.input(reqstate_new_empty())
+                }
+            )
+
+            return reqstate_new_pending({
+                data: input.optimistic,
+                meta: input.meta,
+                fallback: input.fallback,
+
+                request_interpret: input.request_interpret,
+                request_promise: input.request_promise,
+
+                request_abort: () => {
+                    interrupted = true
+
+                    input.request_abort()
+                },
+            })
+        }
+
+        return sc.signal_new_pipei(state, (input: ReqState<T>) => {
+            const state_o = state.output()
+
+            if (state_o.status === ReqState__Status.Pending) {
+                state_o.request_abort()
+            }
+
+            switch (input.status) {
+                case ReqState__Status.Fulfilled:
+                case ReqState__Status.Empty: {
+                    return input
+                }
+                case ReqState__Status.Pending: {
+                    return promise_wrap(input)
+                }
+            }
+        })
+    })
+}
