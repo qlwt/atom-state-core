@@ -11,6 +11,9 @@ export * from "#src/reqstate/new/fulfilled.js"
 export * from "#src/atom/store/type/AtomStore.js"
 export * from "#src/atom/store/new/index.js"
 
+export * from "#src/atom/remreq/new/index.js"
+export * from "#src/atom/remreq/type/State.js"
+
 export * from "#src/atom/value/type/AtomValue.js"
 export * from "#src/atom/value/new/index.js"
 
