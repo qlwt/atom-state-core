@@ -2,6 +2,7 @@ import type { AtomRemState } from "#src/atom/remstate/type/AtomRemote.js";
 import type { AtomSelectorStatic } from "#src/atom/selector/type/AtomSelector.js";
 import { atomvalue_new } from "#src/atom/value/new/index.js";
 import { reqstate_new_empty } from "#src/reqstate/new/empty.js";
+import { reqstate_new_fulfilled } from "#src/reqstate/new/fulfilled.js";
 import { reqstate_new_pending } from "#src/reqstate/new/pending.js";
 import { ReqState__Status, type ReqState, type ReqState_Pending } from "#src/reqstate/type/State.js";
 import * as sc from "@qyu/signal-core";
@@ -10,15 +11,26 @@ export const atomremstate_new = function <T, PR, PM>(init: AtomSelectorStatic<Re
     return atomvalue_new(store => {
         const state = sc.signal_new_value(init(store))
 
-        const promise_wrap = (input: ReqState_Pending<T>): ReqState<T> => {
+        const promise_wrap = (input: ReqState_Pending<T, PR, PM>): ReqState<T> => {
             let interrupted = false
 
             input.request_promise.then(
-                next_reqstate => {
+                result => {
                     if (interrupted) { return }
 
+                    const next_reqstate = input.request_interpret(result)
+
                     switch (next_reqstate.status) {
-                        case ReqState__Status.Empty:
+                        case ReqState__Status.Empty: {
+                            if (input.fallback) {
+                                state.input(reqstate_new_fulfilled(input.fallback))
+
+                            } else {
+                                state.input(next_reqstate)
+                            }
+
+                            break
+                        }
                         case ReqState__Status.Fulfilled: {
                             state.input(next_reqstate)
 
@@ -39,7 +51,7 @@ export const atomremstate_new = function <T, PR, PM>(init: AtomSelectorStatic<Re
             )
 
             return reqstate_new_pending({
-                data: input.optimistic,
+                optimistic: input.optimistic,
                 meta: input.meta,
                 fallback: input.fallback,
 
@@ -47,9 +59,17 @@ export const atomremstate_new = function <T, PR, PM>(init: AtomSelectorStatic<Re
                 request_promise: input.request_promise,
 
                 request_abort: () => {
-                    interrupted = true
+                    if (!interrupted) {
+                        interrupted = true
 
-                    input.request_abort()
+                        if (input.fallback) {
+                            state.input(reqstate_new_fulfilled(input.fallback))
+                        } else {
+                            state.input(reqstate_new_empty())
+                        }
+
+                        input.request_abort()
+                    }
                 },
             })
         }

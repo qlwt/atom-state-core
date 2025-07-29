@@ -8,6 +8,14 @@ export * from "#src/reqstate/new/empty.js"
 export * from "#src/reqstate/new/pending.js"
 export * from "#src/reqstate/new/fulfilled.js"
 
+export * from "#src/atom/remnode/type/Data.js"
+export * from "#src/atom/remnode/type/State.js"
+export * from "#src/atom/remnode/type/Join.js"
+export * from "#src/atom/remnode/new/index.js"
+export * from "#src/atom/remnode/data/index.js"
+export * from "#src/atom/remnode/join/prop.js"
+export * from "#src/atom/remnode/join/prop_array.js"
+
 export * from "#src/atom/store/type/AtomStore.js"
 export * from "#src/atom/store/new/index.js"
 
@@ -24,9 +32,23 @@ export * from "#src/atom/remstate/type/AtomRemote.js"
 export * from "#src/atom/remstate/new/index.js"
 export * from "#src/atom/remstate/sel/data.js"
 
+export * from "#src/atom/remnode/type/Join.js"
+export * from "#src/atom/remnode/type/Data.js"
+export * from "#src/atom/remnode/type/State.js"
+export * from "#src/atom/remnode/data/index.js"
+export * from "#src/atom/remnode/new/index.js"
+export * from "#src/atom/remnode/join/root.js"
+export * from "#src/atom/remnode/join/prop.js"
+export * from "#src/atom/remnode/join/prop_array.js"
+export * from "#src/atom/remnode/action/get.js"
+export * from "#src/atom/remnode/action/patch_set.js"
+export * from "#src/atom/remnode/action/request.js"
+export * from "#src/atom/remnode/action/patch.js"
+
 export * from "#src/atom/family/type/AtomFamily.js"
 export * from "#src/atom/family/new/index.js"
 export * from "#src/atom/family/sel/child.js"
+export * from "#src/atom/family/sel/childlink.js"
 
 export * from "#src/atom/selector/type/AtomSelector.js"
 

@@ -1,9 +1,9 @@
 import type { AtomRemReq, AtomRemReq_State } from "#src/atom/remreq/type/State.js"
-import * as asc from "@qyu/atom-state-core"
+import { atomvalue_new } from "#src/atom/value/new/index.js"
 import * as sc from "@qyu/signal-core"
 
 export const atomremreq_new = function <Data>(): AtomRemReq<Data> {
-    return asc.atomvalue_new(() => {
+    return atomvalue_new(() => {
         const state = sc.signal_new_value<AtomRemReq_State<Data> | null>(null)
 
         return {

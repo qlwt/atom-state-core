@@ -30,7 +30,7 @@ test("remote", async () => {
         request_promise: promise3,
         request_interpret: result => result,
 
-        data: null,
+        optimistic: null,
         meta: null,
         fallback: null,
     }))
@@ -40,7 +40,7 @@ test("remote", async () => {
         request_promise: promise1,
         request_interpret: result => result,
 
-        data: null,
+        optimistic: null,
         meta: null,
         fallback: null,
     }))
@@ -51,7 +51,7 @@ test("remote", async () => {
         request_promise: promise2,
         request_interpret: result => result,
 
-        data: null,
+        optimistic: null,
         meta: null,
         fallback: null,
     }))
@@ -67,7 +67,7 @@ test("remote", async () => {
         request_promise: promise4,
         request_interpret: result => result,
 
-        data: null,
+        optimistic: null,
         meta: null,
         fallback: null,
     }))

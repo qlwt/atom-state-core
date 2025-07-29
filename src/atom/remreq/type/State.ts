@@ -1,5 +1,5 @@
+import type { AtomValue } from "#src/atom/value/type/AtomValue.js"
 import * as sc from "@qyu/signal-core"
-import * as asc from "@qyu/atom-state-core"
 
 export type AtomRemReq_State<Data> = {
     readonly data: Data
@@ -9,4 +9,4 @@ export type AtomRemReq_State<Data> = {
 
 export type AtomRemReq_Value<Data> = sc.Signal<AtomRemReq_State<Data> | null, AtomRemReq_State<Data> | null>
 
-export type AtomRemReq<Data> = asc.AtomValue<AtomRemReq_Value<Data>>
+export type AtomRemReq<Data> = AtomValue<AtomRemReq_Value<Data>>
