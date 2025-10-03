@@ -1,6 +1,6 @@
 import type { AtomAction } from "#src/atom/action/type/AtomAction.js"
 import * as sc from "@qyu/signal-core"
-import type { AtomRemNode, AtomRemNode_Def } from "#src/atom/remnode/type/State.js"
+import type { AtomRemNode, AtomRemNode_Def, AtomRemNode_OptimisticValue } from "#src/atom/remnode/type/State.js"
 import { ReqState__Status } from "#src/reqstate/type/State.js"
 
 export type AtomRemNode_Action_Patch_Set_Request<
@@ -8,10 +8,26 @@ export type AtomRemNode_Action_Patch_Set_Request<
     PromiseResult extends Def["request_result"]
 > = Readonly<{
     promise: Promise<PromiseResult>
-    promise_interpret: (result: PromiseResult, optimistic: Partial<Def["data"]>) => Partial<Def["data"]> | null
+    promise_interpret: (result: PromiseResult, optimistic: Partial<Def["data"]> | null) => Partial<Def["data"]> | null
 
     promise_abort?: () => void
 }>
+
+export type AtomRemNode_Action_Patch_Set_Data<Data> = (
+    | Readonly<{
+        kind: "flat"
+        merge: boolean
+        value: Partial<Data>
+    }>
+    | Readonly<{
+        kind: "flat:factory"
+        value: (old: Partial<Data> | null) => Partial<Data>
+    }>
+    | Readonly<{
+        kind: "modifier"
+        value: (data: Data) => Data | undefined | void
+    }>
+)
 
 export type AtomRemNode_Action_Patch_Set_Config = Readonly<{
     merge: boolean
@@ -23,20 +39,37 @@ export type AtomRemNode_Action_Patch_Set_Params<
 > = Readonly<{
     name: string
     node: AtomRemNode<Def>
-    data: Partial<Def["data"]>
     config: AtomRemNode_Action_Patch_Set_Config
+    data: AtomRemNode_Action_Patch_Set_Data<Def["data"]>
     request: AtomRemNode_Action_Patch_Set_Request<Def, PromiseResult>
 }>
 
-const data_new = function <Data>(old_data: Partial<Data> | null | undefined, now_data: Partial<Data>, merge: boolean): Partial<Data> {
-    if (merge) {
-        return {
-            ...old_data,
-            ...now_data
+const data_new = function <Data>(
+    old_data: AtomRemNode_OptimisticValue<Data> | undefined | null,
+    data: AtomRemNode_Action_Patch_Set_Data<Data>
+): AtomRemNode_OptimisticValue<Data> {
+    switch (data.kind) {
+        case "flat": {
+            if (data.merge && typeof old_data === "object") {
+                return {
+                    ...old_data,
+                    ...data.value
+                }
+            }
+
+            return data.value
+        }
+        case "flat:factory": {
+            if (typeof old_data === "object") {
+                return data.value(old_data)
+            }
+
+            return data.value(null)
+        }
+        case "modifier": {
+            return data.value
         }
     }
-
-    return now_data
 }
 
 export const atomremnode_action_patch_set = function <
@@ -50,7 +83,7 @@ export const atomremnode_action_patch_set = function <
 
         const remdata = reg(params.node)
         const optimistic = reg(remdata.optimistic).reg(params.name)
-        const data = data_new(optimistic.output()?.data, params.data, params.config.merge)
+        const data = data_new(optimistic.output()?.data, params.data)
 
         optimistic.input({
             data,
@@ -87,7 +120,10 @@ export const atomremnode_action_patch_set = function <
                         params.request.promise.then(result => {
                             if (listener_aborted || controller.signal.aborted) { return }
 
-                            const interpretation = params.request.promise_interpret(result, data)
+                            const interpretation = params.request.promise_interpret(
+                                result,
+                                typeof data === "object" ? data : null
+                            )
 
                             if (interpretation) {
                                 const real = reg(remdata.real)

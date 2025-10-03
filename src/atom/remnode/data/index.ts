@@ -5,21 +5,56 @@ import type { AtomSelectorDynamic } from "#src/atom/selector/type/AtomSelector.j
 import { ReqState__Status } from "#src/reqstate/type/State.js";
 import * as sc from "@qyu/signal-core";
 
-const optimistic = function <Data extends {}>(source: Data, updates: (AtomRemReq_State<Partial<Data>> | null)[]): Data {
-    const cpy = { ...source }
+const clone = function <Data extends {}>(source: Data, cloner?: (data: Data) => Data): Data {
+    if (cloner) {
+        return cloner(source)
 
-    for (const update of updates) {
+    }
+
+    return structuredClone(source)
+}
+
+type Optimistic_Params<Data extends {}> = Readonly<{
+    source: Data
+    updates: (AtomRemReq_State<
+        | Partial<Data>
+        | ((source: Data) => Data | undefined | void)
+    > | null)[]
+
+    real_clone?: (data: Data) => Data
+}>
+
+const optimistic = function <Data extends {}>(params: Optimistic_Params<Data>): Data {
+    let cpy: Data = clone(params.source)
+
+    for (const update of params.updates) {
         if (!update) {
             continue
         }
 
-        for (const key of Object.keys(update.data)) {
-            const value = update.data[key as keyof Data]
+        switch (typeof update.data) {
+            case "object": {
+                for (const key of Object.keys(update.data)) {
+                    const key_value = update.data[key as keyof Data]
 
-            if (value !== undefined) {
-                cpy[key as keyof Data] = value
+                    if (key_value !== undefined) {
+                        cpy[key as keyof Data] = key_value
+                    }
+                }
+
+                break
+            }
+            case "function": {
+                const result = update.data(cpy)
+
+                if (result !== undefined) {
+                    cpy = result
+                }
+
+                break
             }
         }
+
     }
 
     return cpy
@@ -27,6 +62,8 @@ const optimistic = function <Data extends {}>(source: Data, updates: (AtomRemReq
 
 export type AtomRemNode_Data_Params<Def extends AtomRemNode_Def> = {
     readonly remnode: AtomRemNode<Def>
+
+    readonly real_clone?: (data: Def["data"]) => Def["data"]
 }
 
 export const atomremnode_data = function <Def extends AtomRemNode_Def>(
@@ -66,7 +103,11 @@ export const atomremnode_data = function <Def extends AtomRemNode_Def>(
                             return {
                                 status: ReqState__Status.Pending,
 
-                                data: optimistic(real_o.optimistic, optimistic_o),
+                                data: optimistic({
+                                    updates: optimistic_o,
+                                    source: real_o.optimistic,
+                                    real_clone: params.real_clone,
+                                }),
 
                                 meta: {
                                     source: "optimistic",
@@ -78,7 +119,11 @@ export const atomremnode_data = function <Def extends AtomRemNode_Def>(
                             return {
                                 status: ReqState__Status.Pending,
 
-                                data: optimistic(real_o.fallback, optimistic_o),
+                                data: optimistic({
+                                    updates: optimistic_o,
+                                    source: real_o.fallback,
+                                    real_clone: params.real_clone,
+                                }),
 
                                 meta: {
                                     source: "fallback",
@@ -100,7 +145,11 @@ export const atomremnode_data = function <Def extends AtomRemNode_Def>(
                         return {
                             status: ReqState__Status.Fulfilled,
 
-                            data: optimistic(real_o.data, optimistic_o),
+                            data: optimistic({
+                                updates: optimistic_o,
+                                source: real_o.data,
+                                real_clone: params.real_clone,
+                            }),
 
                             meta: {
                                 source: "direct"
