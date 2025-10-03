@@ -30,7 +30,6 @@ export type AtomRemNode_Action_Patch_Set_Data<Data> = (
 )
 
 export type AtomRemNode_Action_Patch_Set_Config = Readonly<{
-    merge: boolean
 }>
 
 export type AtomRemNode_Action_Patch_Set_Params<
@@ -39,7 +38,7 @@ export type AtomRemNode_Action_Patch_Set_Params<
 > = Readonly<{
     name: string
     node: AtomRemNode<Def>
-    config: AtomRemNode_Action_Patch_Set_Config
+    config?: AtomRemNode_Action_Patch_Set_Config
     data: AtomRemNode_Action_Patch_Set_Data<Def["data"]>
     request: AtomRemNode_Action_Patch_Set_Request<Def, PromiseResult>
 }>

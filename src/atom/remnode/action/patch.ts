@@ -36,7 +36,6 @@ export type AtomRemNode_Action_Patch_Data<Data> = (
 )
 
 export type AtomRemNode_Action_Patch_Config = Readonly<{
-    merge: boolean
     delay?: number | null
 }>
 
