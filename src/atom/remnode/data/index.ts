@@ -1,5 +1,5 @@
 import type { AtomRemNode__Data } from "#src/atom/remnode/type/Data.js";
-import type { AtomRemNode, AtomRemNode_Def } from "#src/atom/remnode/type/State.js";
+import type { AtomRemNode, AtomRemNode_Def, AtomRemNode_OptimisticValue } from "#src/atom/remnode/type/State.js";
 import type { AtomRemReq_State } from "#src/atom/remreq/type/State.js";
 import type { AtomSelectorDynamic } from "#src/atom/selector/type/AtomSelector.js";
 import { ReqState__Status } from "#src/reqstate/type/State.js";
@@ -16,10 +16,7 @@ const clone = function <Data extends {}>(source: Data, cloner?: (data: Data) => 
 
 type Optimistic_Params<Data extends {}> = Readonly<{
     source: Data
-    updates: (AtomRemReq_State<
-        | Partial<Data>
-        | ((source: Data) => Data | undefined | void)
-    > | null)[]
+    updates: (AtomRemReq_State<AtomRemNode_OptimisticValue<Data>> | null)[]
 
     real_clone?: (data: Data) => Data
 }>
