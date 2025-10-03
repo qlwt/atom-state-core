@@ -184,8 +184,7 @@ export const atomremnode_action_patch = function <
 
                                                 data: {
                                                     ...real_prev.data,
-
-                                                    ...data
+                                                    ...interpretation
                                                 }
                                             })
                                         }
