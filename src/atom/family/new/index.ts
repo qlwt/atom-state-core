@@ -45,7 +45,7 @@ export const atomfamily_new = function <P, V>(
                                 type: "post",
 
                                 key: key,
-                                value_next: result
+                                value_next: value
                             })
                         })
                     })
