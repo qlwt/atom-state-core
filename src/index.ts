@@ -15,6 +15,7 @@ export * from "#src/atom/remnode/new/index.js"
 export * from "#src/atom/remnode/data/index.js"
 export * from "#src/atom/remnode/join/prop.js"
 export * from "#src/atom/remnode/join/prop_array.js"
+export * from "#src/atom/remnode/util/data.js"
 
 export * from "#src/atom/store/type/AtomStore.js"
 export * from "#src/atom/store/new/index.js"

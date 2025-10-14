@@ -16,6 +16,7 @@ type State_Pending_Null<Def extends AtomRemNode_Def> = Readonly<{
 
     meta: {
         source: "direct"
+        request: Def["request_meta"]
     }
 }>
 
@@ -25,6 +26,7 @@ type State_Pending_Optimistic<Def extends AtomRemNode_Def> = Readonly<{
 
     meta: {
         source: "optimistic"
+        request: Def["request_meta"]
     }
 }>
 
@@ -34,6 +36,7 @@ type State_Pending_Fallback<Def extends AtomRemNode_Def> = Readonly<{
 
     meta: {
         source: "fallback"
+        request: Def["request_meta"]
     }
 }>
 
