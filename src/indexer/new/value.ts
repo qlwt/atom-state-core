@@ -14,7 +14,7 @@ export type Indexer_NewValue_Params = Readonly<{
 }>
 
 export const indexer_new_value = function <Ref, Value>(
-    params: Indexer_NewValue_Params
+    _params: Indexer_NewValue_Params
 ): Indexer<Ref, Value, Indexer_NewValue_Filter<Value>> {
     const map_dep = new Map<Value, Dep<Ref>>()
     const map_ref = new Map<Ref, { value: Value }>()

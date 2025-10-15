@@ -1,7 +1,7 @@
 import type { AtomRemNode_Def } from "#src/atom/remnode/type/State.js"
 import type { ReqState__Status } from "#src/reqstate/type/State.js"
 
-type State_Empty<Def extends AtomRemNode_Def> = Readonly<{
+type State_Empty<_Def extends AtomRemNode_Def> = Readonly<{
     status: ReqState__Status.Empty
     data: null
 
