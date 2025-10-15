@@ -1,4 +1,5 @@
 import { atomremnode_data } from "#src/atom/remnode/data/index.js"
+import type { AtomRemNode__Data } from "#src/atom/remnode/type/Data.js"
 import type { AtomRemNode_Join, AtomRemNode_Join_Factory } from "#src/atom/remnode/type/Join.js"
 import type { AtomRemNode_Def, AtomRemNode_Value } from "#src/atom/remnode/type/State.js"
 import type { AtomSelectorStatic } from "#src/atom/selector/type/AtomSelector.js"
@@ -51,7 +52,10 @@ export const atomremnode_join_root = function <
             }))
 
             for (const key of Object.keys(params.properties)) {
-                const property = params.properties[key as Extract<keyof Def["data"], string>]
+                const property = params.properties[key as keyof Properties] as AtomRemNode_Join_Factory<
+                    sc.OSignal<Def["data"][keyof Def["data"]] | AtomRemNode__Data<Def> | null>,
+                    any
+                >
 
                 if (property) {
                     const property_param = sc.osignal_new_memo(sc.osignal_new_pipe(data, data_o => {
@@ -59,7 +63,11 @@ export const atomremnode_join_root = function <
                             return null
                         }
 
-                        return data_o.data[key as Extract<keyof Def["data"], string>]
+                        if (key in data_o.data) {
+                            return data_o.data[key as Extract<keyof Def["data"], string>]
+                        }
+
+                        return data_o
                     }))
 
                     overrides[key as keyof Properties] = sc.osignal_new_memo(reg(property)(property_param)) as any
