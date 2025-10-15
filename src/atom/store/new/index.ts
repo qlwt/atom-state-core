@@ -64,6 +64,10 @@ export const atomstore_new = function(): AtomStore {
             return map.get(atomvalue) as T
         },
 
+        dispatch: (atomaction) => {
+            atomaction(store)
+        },
+
         // meta.actions
         has: key => {
             return map.has(key)

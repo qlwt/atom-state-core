@@ -1,3 +1,4 @@
+import type { AtomAction } from "#src/atom/action/type/AtomAction.js";
 import type { AtomValue } from "#src/atom/value/type/AtomValue.js";
 import type * as sc from "@qyu/signal-core"
 
@@ -26,6 +27,7 @@ export type AtomStore_EntryChangeEvent<T = any> = (
 export type AtomStore = Readonly<{
     // core
     reg: <T>(atomvalue: AtomValue<T>) => T
+    dispatch: (atomaction: AtomAction) => void
     reg_default: <T>(atomvalue: AtomValue<T>, value: T) => T
 
     // meta actions
