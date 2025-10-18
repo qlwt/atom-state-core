@@ -3,12 +3,17 @@ import * as sc from "@qyu/signal-core"
 import type { AtomRemNode, AtomRemNode_Def, AtomRemNode_OptimisticValue } from "#src/atom/remnode/type/State.js"
 import { ReqState__Status } from "#src/reqstate/type/State.js"
 
+export type AtomRemNode_Action_Patch_Set_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = Readonly<{
+    real: Def["data"]
+    result: PromiseResult
+}>
+
 export type AtomRemNode_Action_Patch_Set_Request<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"]
 > = Readonly<{
     promise: Promise<PromiseResult>
-    promise_interpret: (result: PromiseResult, optimistic: Partial<Def["data"]> | null) => Partial<Def["data"]> | null
+    promise_interpret: (api: AtomRemNode_Action_Patch_Set_InterpretApi<Def, PromiseResult>) => Partial<Def["data"]> | null
 
     promise_abort?: () => void
 }>
@@ -29,16 +34,12 @@ export type AtomRemNode_Action_Patch_Set_Data<Data> = (
     }>
 )
 
-export type AtomRemNode_Action_Patch_Set_Config = Readonly<{
-}>
-
 export type AtomRemNode_Action_Patch_Set_Params<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"]
 > = Readonly<{
     name: string
     node: AtomRemNode<Def>
-    config?: AtomRemNode_Action_Patch_Set_Config
     data: AtomRemNode_Action_Patch_Set_Data<Def["data"]>
     request: AtomRemNode_Action_Patch_Set_Request<Def, PromiseResult>
 }>
@@ -119,16 +120,16 @@ export const atomremnode_action_patch_set = function <
                         params.request.promise.then(result => {
                             if (listener_aborted || controller.signal.aborted) { return }
 
-                            const interpretation = params.request.promise_interpret(
-                                result,
-                                typeof data === "object" ? data : null
-                            )
+                            const real = reg(remdata.real)
+                            const real_prev = real.output()
 
-                            if (interpretation) {
-                                const real = reg(remdata.real)
-                                const real_prev = real.output()
+                            if (real_prev.status === ReqState__Status.Fulfilled) {
+                                const interpretation = params.request.promise_interpret({
+                                    result,
+                                    real: real_prev
+                                })
 
-                                if (real_prev.status === ReqState__Status.Fulfilled) {
+                                if (interpretation) {
                                     real.input({
                                         ...real_prev,
 

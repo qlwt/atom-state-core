@@ -1,11 +1,16 @@
 import type { AtomAction } from "#src/atom/action/type/AtomAction.js"
 import type { AtomRemNode, AtomRemNode_Def, AtomRemNode_OptimisticValue } from "#src/atom/remnode/type/State.js"
+import { reqstate_new_fulfilled } from "#src/reqstate/new/fulfilled.js"
 import { ReqState__Status } from "#src/reqstate/type/State.js"
 import * as sc from "@qyu/signal-core"
 
+export type AtomRemNode_Action_Patch_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = Readonly<{
+    real: Def["data"]
+    result: PromiseResult
+}>
+
 export type AtomRemNode_Action_Patch_Request_Params<Def extends AtomRemNode_Def> = Readonly<{
     real: Def["data"]
-    data: Partial<Def["data"]> | null
 }>
 
 export type AtomRemNode_Action_Patch_Request<
@@ -16,7 +21,7 @@ export type AtomRemNode_Action_Patch_Request<
 
     promise: Promise<PromiseResult>
     promise_abort: VoidFunction
-    promise_interpret: (result: PromiseResult, optimistic: Partial<Def["data"]> | null) => Partial<Def["data"]> | null
+    promise_interpret: (api: AtomRemNode_Action_Patch_InterpretApi<Def, PromiseResult>) => Partial<Def["data"]> | null
 }>
 
 export type AtomRemNode_Action_Patch_Data<Data> = (
@@ -45,9 +50,10 @@ export type AtomRemNode_Action_Patch_Params<
 > = Readonly<{
     name: string
     node: AtomRemNode<Def>
-    config: AtomRemNode_Action_Patch_Config
     data: AtomRemNode_Action_Patch_Data<Def["data"]>
     request: (params: AtomRemNode_Action_Patch_Request_Params<Def>) => AtomRemNode_Action_Patch_Request<Def, PromiseResult>
+
+    config?: AtomRemNode_Action_Patch_Config
 }>
 
 const data_new = function <Data>(
@@ -91,9 +97,7 @@ const delay = function(action: VoidFunction, ondelay: (id: NodeJS.Timeout) => vo
 export const atomremnode_action_patch = function <
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"] = Def["request_result"]
->(
-    params: AtomRemNode_Action_Patch_Params<Def, PromiseResult>
-): AtomAction {
+>(params: AtomRemNode_Action_Patch_Params<Def, PromiseResult>): AtomAction {
     return ({ reg }) => {
         const controller = new AbortController()
 
@@ -148,7 +152,6 @@ export const atomremnode_action_patch = function <
                                 // create request
                                 const request_original = params.request({
                                     real: target_o.data,
-                                    data: typeof data === "object" ? data : null,
                                 })
 
                                 // add custom abort
@@ -169,24 +172,20 @@ export const atomremnode_action_patch = function <
                                 request_parsed.promise.then(result => {
                                     if (aborted || controller.signal.aborted) { return }
 
-                                    const interpretation = request_parsed.promise_interpret(
-                                        result,
-                                        typeof data === "object" ? data : null
-                                    )
+                                    const real = reg(remdata.real)
+                                    const real_prev = real.output()
 
-                                    if (interpretation) {
-                                        const real = reg(remdata.real)
-                                        const real_prev = real.output()
+                                    if (real_prev.status === ReqState__Status.Fulfilled) {
+                                        const interpretation = request_parsed.promise_interpret({
+                                            result,
+                                            real: real_prev
+                                        })
 
-                                        if (real_prev.status === ReqState__Status.Fulfilled) {
-                                            real.input({
-                                                ...real_prev,
-
-                                                data: {
-                                                    ...real_prev.data,
-                                                    ...interpretation
-                                                }
-                                            })
+                                        if (interpretation) {
+                                            real.input(reqstate_new_fulfilled({
+                                                ...real_prev.data,
+                                                ...interpretation
+                                            }))
                                         }
 
                                         resolve()
@@ -209,7 +208,7 @@ export const atomremnode_action_patch = function <
                                 request_parsed.promise_after?.(request_parsed.promise)
                             }, timeout => {
                                 delay_id = timeout
-                            }, params.config.delay)
+                            }, params.config?.delay)
                         }
                     } else {
                         // if not fulfilled stop current request

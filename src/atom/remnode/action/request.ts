@@ -5,6 +5,17 @@ import { reqstate_new_fulfilled } from "#src/reqstate/new/fulfilled.js"
 import { reqstate_new_pending } from "#src/reqstate/new/pending.js"
 import { ReqState__Status, type ReqState } from "#src/reqstate/type/State.js"
 
+export type AtomRemNode_Action_Request_InterpretApi<
+    Def extends AtomRemNode_Def,
+    PromiseResult,
+    PromiseMeta
+> = Readonly<{
+    meta: PromiseMeta
+    result: PromiseResult
+    fallback: Def["data"] | null
+    optimistic: Def["data"] | null
+}>
+
 export type AtomRemNode_Action_Request_Request<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"],
@@ -14,15 +25,17 @@ export type AtomRemNode_Action_Request_Request<
 
     promise: Promise<PromiseResult>
     promise_abort: VoidFunction
-    promise_interpret: (result: PromiseResult, meta: PromiseMeta) => Def["data"] | null
+    promise_interpret: (api: AtomRemNode_Action_Request_InterpretApi<Def, PromiseResult, PromiseMeta>) => Def["data"] | null
+    promise_target?: (api: AtomRemNode_Action_Request_InterpretApi<Def, PromiseResult, PromiseMeta>) => AtomRemNode<Def> | null
 
-    promise_target?: (data: Def["data"]) => AtomRemNode<Def>
     promise_after?: (promise: Promise<PromiseResult>) => void
 }>
 
-export type AtomRemNode_Action_Request_Config = Readonly<{
+export type AtomRemNode_Action_Request_Optimistic<Def extends AtomRemNode_Def> = {
     fallback: boolean
-}>
+    node: AtomRemNode<Def>
+    data: Def["data"] | null
+}
 
 const old_new = function <Def extends AtomRemNode_Def>(phase: ReqState<Def["data"]>): Def["data"] | null {
     switch (phase.status) {
@@ -37,18 +50,12 @@ const old_new = function <Def extends AtomRemNode_Def>(phase: ReqState<Def["data
     return null
 }
 
-export type AtomRemNode_Action_Request_Optimistic<Def extends AtomRemNode_Def> = Readonly<{
-    data: Def["data"] | null
-    node: AtomRemNode<Def>
-}>
-
 export type AtomRemNode_Action_Request_Params<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"],
     PromiseMeta extends Def["request_meta"],
 > = Readonly<{
-    config: AtomRemNode_Action_Request_Config
-    optimistic: AtomRemNode_Action_Request_Optimistic<Def> | null
+    optimistic?: AtomRemNode_Action_Request_Optimistic<Def>
     request: () => AtomRemNode_Action_Request_Request<Def, PromiseResult, PromiseMeta>
 }>
 
@@ -56,16 +63,16 @@ export const atomremnode_action_request = function <
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"] = Def["request_result"],
     PromiseMeta extends Def["request_meta"] = Def["request_meta"],
->(
-    params: AtomRemNode_Action_Request_Params<Def, PromiseResult, PromiseMeta>
-): AtomAction {
+>(params: AtomRemNode_Action_Request_Params<Def, PromiseResult, PromiseMeta>): AtomAction {
     return ({ reg }) => {
-        if (params.optimistic) {
-            const remdata = reg(params.optimistic.node)
+        const optimistic = params.optimistic
+
+        if (optimistic) {
+            const remdata = reg(optimistic.node)
             const real = reg(remdata.real)
             const real_o = real.output()
-            const fallback = old_new(real_o)
             const request = params.request()
+            const fallback_value = old_new(real_o)
 
             switch (real_o.status) {
                 case ReqState__Status.Pending: {
@@ -77,16 +84,45 @@ export const atomremnode_action_request = function <
 
             real.input(reqstate_new_pending({
                 meta: request.meta,
-                optimistic: params.optimistic.data,
-                fallback: params.config.fallback ? fallback : null,
+                optimistic: optimistic.data,
+                fallback: optimistic.fallback ? fallback_value : null,
 
                 request_promise: request.promise,
                 request_abort: request.promise_abort,
 
                 request_interpret: result => {
-                    const data = request.promise_interpret(result, request.meta)
+                    const data = request.promise_interpret({
+                        result,
+                        fallback: fallback_value,
+                        meta: request.meta,
+                        optimistic: optimistic.data,
+                    })
 
-                    if (data === null) {
+                    const after_atomremnode = (request.promise_target
+                        ? request.promise_target({
+                            result,
+                            fallback: null,
+                            optimistic: null,
+                            meta: request.meta,
+                        })
+                        : optimistic.node
+                    )
+
+                    if (data === null || after_atomremnode === null) {
+                        return reqstate_new_empty()
+                    }
+
+                    if (after_atomremnode !== optimistic.node) {
+                        const after_remnode = reg(after_atomremnode)
+                        const after_real = reg(after_remnode.real)
+                        const after_real_o = after_real.output()
+
+                        if (after_real_o.status === ReqState__Status.Pending) {
+                            after_real_o.request_abort()
+                        }
+
+                        after_real.input(reqstate_new_fulfilled(data))
+
                         return reqstate_new_empty()
                     }
 
@@ -99,16 +135,26 @@ export const atomremnode_action_request = function <
             const request = params.request()
 
             request.promise.then(result => {
-                const data = request.promise_interpret(result, request.meta)
+                if (!request.promise_target) {
+                    throw new Error("No request.promise_target provided for pessimistic request")
+                }
 
-                if (data) {
-                    const target = params.optimistic?.node || request.promise_target?.(data)
+                const data = request.promise_interpret({
+                    result,
+                    fallback: null,
+                    optimistic: null,
+                    meta: request.meta,
+                })
 
-                    if (!target) {
-                        throw new Error("Trying to make request remnode action with neither optimistic nor target node")
-                    }
+                const atomremnode = request.promise_target({
+                    result,
+                    fallback: null,
+                    optimistic: null,
+                    meta: request.meta,
+                })
 
-                    const remdata = reg(target)
+                if (data && atomremnode) {
+                    const remdata = reg(atomremnode)
                     const real = reg(remdata.real)
                     const real_o = real.output()
 
@@ -118,7 +164,7 @@ export const atomremnode_action_request = function <
 
                     real.input(reqstate_new_fulfilled(data))
                 }
-            }, () => {})
+            }, () => { })
 
             request.promise_after?.(request.promise)
         }
