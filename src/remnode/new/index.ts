@@ -33,7 +33,7 @@ export const remnode_new = function <Def extends AtomRemNode_Def>(params: RemNod
 
                 cache(result)
 
-                return remreq_new()
+                return result
             }
         }),
     }
