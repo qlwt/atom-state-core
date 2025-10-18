@@ -1,15 +1,14 @@
 import { atomremnode_data } from "#src/atom/remnode/data/index.js"
-import type { AtomRemNode__Data } from "#src/atom/remnode/type/Data.js"
+import type { AtomRemNode__Data_Fulfilled } from "#src/atom/remnode/type/Data.js"
 import type { AtomRemNode_Join, AtomRemNode_Join_Factory } from "#src/atom/remnode/type/Join.js"
 import type { AtomRemNode_Def, AtomRemNode_Value } from "#src/atom/remnode/type/State.js"
 import type { AtomSelectorStatic } from "#src/atom/selector/type/AtomSelector.js"
 import * as sc from "@qyu/signal-core"
 
 type G_Properties<Def extends AtomRemNode_Def> = {
-    readonly [K in keyof Def["data"]]?: AtomRemNode_Join_Factory<
-        sc.OSignal<Def["data"][K] | null>,
-        any
-    >
+    readonly [K in string]: (
+        AtomRemNode_Join_Factory<sc.OSignal<null | AtomRemNode__Data_Fulfilled<Def>>, any>
+    )
 }
 
 type Properties_Parse<Src extends G_Properties<any>> = {
@@ -29,7 +28,7 @@ type Overrides<Properties extends G_Properties<any>> = {
 export type AtomRemNode_Join_Root_Params<
     Param,
     Def extends AtomRemNode_Def,
-    Properties extends G_Properties<Def>,
+    Properties extends G_Properties<Def>
 > = Readonly<{
     properties: Properties
     link: AtomSelectorStatic<(index: Param) => AtomRemNode_Value<Def>>
@@ -38,7 +37,7 @@ export type AtomRemNode_Join_Root_Params<
 export const atomremnode_join_root = function <
     Param,
     Def extends AtomRemNode_Def,
-    Properties extends G_Properties<Def>,
+    Properties extends G_Properties<Def>
 >(params: AtomRemNode_Join_Root_Params<Param, Def, Properties>): AtomRemNode_Join_Factory<
     Param,
     AtomRemNode_Join<Def, Properties_Parse<Properties>>
@@ -52,10 +51,7 @@ export const atomremnode_join_root = function <
             }))
 
             for (const key of Object.keys(params.properties)) {
-                const property = params.properties[key as keyof Properties] as AtomRemNode_Join_Factory<
-                    sc.OSignal<Def["data"][keyof Def["data"]] | AtomRemNode__Data<Def> | null>,
-                    any
-                >
+                const property = params.properties[key as keyof Properties]
 
                 if (property) {
                     const property_param = sc.osignal_new_memo(sc.osignal_new_pipe(data, data_o => {
@@ -63,11 +59,7 @@ export const atomremnode_join_root = function <
                             return null
                         }
 
-                        if (key in data_o.data) {
-                            return data_o.data[key as Extract<keyof Def["data"], string>]
-                        }
-
-                        return data_o
+                        return data_o as AtomRemNode__Data_Fulfilled<Def>
                     }))
 
                     overrides[key as keyof Properties] = sc.osignal_new_memo(reg(property)(property_param)) as any
