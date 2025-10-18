@@ -15,8 +15,8 @@ export const atomremnode_data = function <Def extends AtomRemNode_Def>(
 ): AtomSelectorDynamic<AtomRemNode__Data<Def>> {
     return ({ reg }) => {
         const remnode = reg(params.remnode)
-        const real = reg(remnode.real)
-        const optimistic_family = reg(remnode.optimistic)
+        const real = remnode.real
+        const optimistic_family = remnode.optimistic
         const optimistic_entries = optimistic_family.entries_signal()
 
         return sc.osignal_new_pipe(

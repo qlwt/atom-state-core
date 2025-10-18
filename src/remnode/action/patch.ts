@@ -101,8 +101,8 @@ export const atomremnode_action_patch = function <
     return ({ reg }) => {
         const controller = new AbortController()
 
-        const remdata = reg(params.node)
-        const optimistic_family = reg(remdata.optimistic)
+        const remnode = reg(params.node)
+        const optimistic_family = remnode.optimistic
         const optimistic_reqdata = optimistic_family.reg(params.name)
         const data = data_new(optimistic_reqdata.output()?.data, params.data)
 
@@ -139,7 +139,7 @@ export const atomremnode_action_patch = function <
                 }
 
                 const real_listener = () => {
-                    const target_o = reg(remdata.real).output()
+                    const target_o = remnode.real.output()
 
                     let aborted = false
 
@@ -172,7 +172,7 @@ export const atomremnode_action_patch = function <
                                 request_parsed.promise.then(result => {
                                     if (aborted || controller.signal.aborted) { return }
 
-                                    const real = reg(remdata.real)
+                                    const real = remnode.real
                                     const real_prev = real.output()
 
                                     if (real_prev.status === ReqState__Status.Fulfilled) {
@@ -234,7 +234,7 @@ export const atomremnode_action_patch = function <
                 }
 
                 const real_cleanup = sc.signal_listen({
-                    target: reg(remdata.real),
+                    target: remnode.real,
                     listener: real_listener,
 
                     config: {

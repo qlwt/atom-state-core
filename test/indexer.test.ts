@@ -267,19 +267,19 @@ test("indexer remnode", async () => {
         source: () => family
     }))
 
-    store.reg(family.reg(0).real).input(reqstate_new_fulfilled({
+    family.reg(0).real.input(reqstate_new_fulfilled({
         id: 0,
         item_id: 0
     }))
 
-    store.reg(family.reg(1).real).input(reqstate_new_fulfilled({
+    family.reg(1).real.input(reqstate_new_fulfilled({
         id: 1,
         item_id: 1
     }))
 
     expectation.push([1])
 
-    store.reg(family.reg(2).real).input(reqstate_new_pending({
+    family.reg(2).real.input(reqstate_new_pending({
         request_abort: () => { },
         request_promise: Promise.resolve(),
         fallback: null,
@@ -303,7 +303,7 @@ test("indexer remnode", async () => {
 
     expectation.push([1, 2])
 
-    store.reg(family.reg(1).optimistic).reg("patch").input({
+    family.reg(1).optimistic.reg("patch").input({
         abort: () => { },
         promise: Promise.resolve(),
 
@@ -415,19 +415,19 @@ test("atomfamily_indexer", async () => {
         }))
     })
 
-    store.reg(family.reg(0).real).input(reqstate_new_fulfilled({
+    family.reg(0).real.input(reqstate_new_fulfilled({
         id: 0,
         item_id: 0
     }))
 
-    store.reg(family.reg(1).real).input(reqstate_new_fulfilled({
+    family.reg(1).real.input(reqstate_new_fulfilled({
         id: 1,
         item_id: 1
     }))
 
     expectation.push([1])
 
-    store.reg(family.reg(2).real).input(reqstate_new_pending({
+    family.reg(2).real.input(reqstate_new_pending({
         request_abort: () => { },
         request_promise: Promise.resolve(),
         fallback: null,
@@ -451,7 +451,7 @@ test("atomfamily_indexer", async () => {
 
     expectation.push([1, 2])
 
-    store.reg(family.reg(1).optimistic).reg("patch").input({
+    family.reg(1).optimistic.reg("patch").input({
         abort: () => { },
         promise: Promise.resolve(),
 

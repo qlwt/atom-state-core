@@ -1,7 +1,7 @@
 import type { AtomAction } from "#src/action/type/AtomAction.js"
-import * as sc from "@qyu/signal-core"
 import type { AtomRemNode, AtomRemNode_Def, AtomRemNode_OptimisticValue } from "#src/remnode/type/State.js"
 import { ReqState__Status } from "#src/reqstate/type/State.js"
+import * as sc from "@qyu/signal-core"
 
 export type AtomRemNode_Action_Patch_Set_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = Readonly<{
     real: Def["data"]
@@ -81,8 +81,8 @@ export const atomremnode_action_patch_set = function <
     return ({ reg }) => {
         const controller = new AbortController()
 
-        const remdata = reg(params.node)
-        const optimistic = reg(remdata.optimistic).reg(params.name)
+        const remnode = reg(params.node)
+        const optimistic = remnode.optimistic.reg(params.name)
         const data = data_new(optimistic.output()?.data, params.data)
 
         optimistic.input({
@@ -110,7 +110,7 @@ export const atomremnode_action_patch_set = function <
                 }
 
                 const real_listener = () => {
-                    const target_o = reg(remdata.real).output()
+                    const target_o = remnode.real.output()
 
                     let listener_aborted = false
 
@@ -120,7 +120,7 @@ export const atomremnode_action_patch_set = function <
                         params.request.promise.then(result => {
                             if (listener_aborted || controller.signal.aborted) { return }
 
-                            const real = reg(remdata.real)
+                            const real = remnode.real
                             const real_prev = real.output()
 
                             if (real_prev.status === ReqState__Status.Fulfilled) {
@@ -172,7 +172,7 @@ export const atomremnode_action_patch_set = function <
                 }
 
                 const real_cleanup = sc.signal_listen({
-                    target: reg(remdata.real),
+                    target: remnode.real,
                     listener: real_listener,
 
                     config: {

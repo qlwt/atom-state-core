@@ -32,9 +32,9 @@ export const indexer_connect_remnode = function <Def extends AtomRemNode_Def>(
         const map_deps = new Map<AtomRemNode_Value<Def>, Dep>()
 
         const ev_post = function(value: AtomRemNode_Value<Def>) {
-            const real = reg(value.real)
+            const real = value.real
             const optimistic = sc.osignal_new_flat(sc.osignal_new_pipe(
-                reg(value.optimistic).entries_signal(),
+                value.optimistic.entries_signal(),
                 entries => sc.osignal_new_merge(
                     entries.map(entry => entry[1])
                 )

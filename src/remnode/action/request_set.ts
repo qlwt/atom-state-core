@@ -70,7 +70,7 @@ export const atomremnode_action_request_set = function <
         if (optimistic) {
             const request = params.request
             const opt_remnode = reg(optimistic.node)
-            const opt_real = reg(opt_remnode.real)
+            const opt_real = opt_remnode.real
             const opt_real_o = opt_real.output()
             const fallback_value = old_new(opt_real_o)
 
@@ -113,7 +113,7 @@ export const atomremnode_action_request_set = function <
 
                     if (after_atomremnode !== optimistic.node) {
                         const after_remnode = reg(after_atomremnode)
-                        const after_real = reg(after_remnode.real)
+                        const after_real = after_remnode.real
                         const after_real_o = after_real.output()
 
                         if (after_real_o.status === ReqState__Status.Pending) {
@@ -151,8 +151,8 @@ export const atomremnode_action_request_set = function <
                 })
 
                 if (data && atomremnode) {
-                    const remdata = reg(atomremnode)
-                    const real = reg(remdata.real)
+                    const remnode = reg(atomremnode)
+                    const real = remnode.real
                     const real_o = real.output()
 
                     if (real_o.status === ReqState__Status.Pending) {
