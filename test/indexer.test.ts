@@ -1,6 +1,6 @@
-import { atomfamily_new } from "#src/atom/family/new/index.js";
-import { atomstore_new } from "#src/atom/store/new/index.js";
-import { atomvalue_new } from "#src/atom/value/new/index.js";
+import { atomfamily_new } from "#src/family/atom/index.js";
+import { atomstore_new } from "#src/store/new/index.js";
+import { atomvalue_new } from "#src/value/atom/index.js";
 import { atomfamily_new_indexer, atomremnode_new, reqstate_new_fulfilled, reqstate_new_pending, type AtomRemNode_Value } from "#src/index.js";
 import { indexer_connect_family } from "#src/indexer/connect/family.js";
 import { indexer_connect_remnode } from "#src/indexer/connect/remnode.js";

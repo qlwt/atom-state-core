@@ -1,6 +1,6 @@
-import { atomloader_new_pure } from "#src/atom/loader/new/pure.js";
-import { atomstate_new } from "#src/atom/state/new/index.js";
-import { atomstore_new } from "#src/atom/store/new/index.js";
+import { atomloader_new_pure } from "#src/loader/atom/pure.js";
+import { atomstate_new } from "#src/state/atom/index.js";
+import { atomstore_new } from "#src/store/new/index.js";
 import { throttler_new_immediate } from "#src/throttler/new/immediate.js";
 import { throttler_new_microtask } from "#src/throttler/new/microtask.js";
 import { expect, test } from "vitest";

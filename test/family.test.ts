@@ -1,6 +1,6 @@
-import { atomfamily_new } from "#src/atom/family/new/index.js";
-import { atomstore_new } from "#src/atom/store/new/index.js";
-import { atomvalue_new } from "#src/atom/value/new/index.js";
+import { atomfamily_new } from "#src/family/atom/index.js";
+import { atomstore_new } from "#src/store/new/index.js";
+import { atomvalue_new } from "#src/value/atom/index.js";
 import { expect, test } from "vitest";
 
 const atomfamily = atomfamily_new({

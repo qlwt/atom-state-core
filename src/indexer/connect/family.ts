@@ -1,6 +1,6 @@
-import type { AtomFamily, AtomFamily_EntryChangeEvent } from "#src/atom/family/type/AtomFamily.js"
+import type { AtomFamily, AtomFamily_EntryChangeEvent } from "#src/family/type/AtomFamily.js"
 import type { Indexer } from "#src/indexer/type/indexer.js"
-import type { AtomSelectorStatic } from "#src/atom/selector/type/AtomSelector.js"
+import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js"
 import * as sc from "@qyu/signal-core"
 
 export type Indexer_ConnectFamily_Params<V> = Readonly<{

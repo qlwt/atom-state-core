@@ -1,5 +1,5 @@
-import { atomremstate_new } from "#src/atom/remstate/new/index.js";
-import { atomstore_new } from "#src/atom/store/new/index.js";
+import { atomremstate_new } from "#src/remstate/atom/index.js";
+import { atomstore_new } from "#src/store/new/index.js";
 import { reqstate_new_empty } from "#src/reqstate/new/empty.js";
 import { reqstate_new_fulfilled } from "#src/reqstate/new/fulfilled.js";
 import { reqstate_new_pending } from "#src/reqstate/new/pending.js";
