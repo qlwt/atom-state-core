@@ -12,6 +12,7 @@ type Dep = {
 }
 
 export type Indexer_ConnectRemNode_Data<Def extends AtomRemNode_Def> = Readonly<{
+    statics: Def["statics"]
     data: Def["data"] | null
     pending_meta: Def["request_meta"] | null
 }>
@@ -42,6 +43,7 @@ export const indexer_connect_remnode = function <Def extends AtomRemNode_Def>(
             {
                 const data = remnode_data({
                     real: real.output(),
+                    statics: value.statics,
                     optimistic: optimistic.output(),
 
                     real_clone: params.real_clone,
@@ -49,6 +51,7 @@ export const indexer_connect_remnode = function <Def extends AtomRemNode_Def>(
 
                 params.indexer.ref_add(value, {
                     data: data.data,
+                    statics: data.meta.statics,
                     pending_meta: data.status === ReqState__Status.Pending ? data.meta.request : null,
                 })
             }
@@ -57,9 +60,9 @@ export const indexer_connect_remnode = function <Def extends AtomRemNode_Def>(
                 const esignal = sc.esignal_new_merge([real, optimistic])
 
                 const sub = () => {
-
                     const data = remnode_data({
                         real: real.output(),
+                        statics: value.statics,
                         optimistic: optimistic.output(),
 
                         real_clone: params.real_clone,
@@ -67,6 +70,7 @@ export const indexer_connect_remnode = function <Def extends AtomRemNode_Def>(
 
                     params.indexer.ref_update(value, {
                         data: data.data,
+                        statics: data.meta.statics,
                         pending_meta: data.status === ReqState__Status.Pending ? data.meta.request : null,
                     })
                 }

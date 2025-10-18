@@ -1,12 +1,13 @@
 import type { AtomRemNode_Def } from "#src/atom/remnode/type/State.js"
 import type { ReqState__Status } from "#src/reqstate/type/State.js"
 
-type State_Empty<_Def extends AtomRemNode_Def> = Readonly<{
+type State_Empty<Def extends AtomRemNode_Def> = Readonly<{
     status: ReqState__Status.Empty
     data: null
 
     meta: {
         source: "direct"
+        statics: Def["statics"]
     }
 }>
 
@@ -16,6 +17,7 @@ type State_Pending_Null<Def extends AtomRemNode_Def> = Readonly<{
 
     meta: {
         source: "direct"
+        statics: Def["statics"]
         request: Def["request_meta"]
     }
 }>
@@ -26,6 +28,7 @@ type State_Pending_Optimistic<Def extends AtomRemNode_Def> = Readonly<{
 
     meta: {
         source: "optimistic"
+        statics: Def["statics"]
         request: Def["request_meta"]
     }
 }>
@@ -36,6 +39,7 @@ type State_Pending_Fallback<Def extends AtomRemNode_Def> = Readonly<{
 
     meta: {
         source: "fallback"
+        statics: Def["statics"]
         request: Def["request_meta"]
     }
 }>
@@ -46,6 +50,7 @@ type State_Fulfilled<Def extends AtomRemNode_Def> = Readonly<{
 
     meta: {
         source: "direct"
+        statics: Def["statics"]
     }
 }>
 

@@ -33,6 +33,7 @@ export const atomremnode_data = function <Def extends AtomRemNode_Def>(
                 return remnode_data({
                     real: real_o,
                     optimistic: optimistic_o,
+                    statics: remnode.statics,
                     real_clone: params.real_clone
                 })
             }

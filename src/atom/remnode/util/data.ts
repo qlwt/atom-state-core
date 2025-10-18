@@ -55,6 +55,7 @@ const optimistic_apply = function <Data extends {}>(params: Optimistic__Apply_Pa
 }
 
 export type RemNode__Data_Params<Def extends AtomRemNode_Def> = Readonly<{
+    statics: Def["statics"]
     real: ReqState<Def["data"], Def["request_meta"], Def["request_result"]>,
     optimistic: (AtomRemReq_State<AtomRemNode_OptimisticValue<Def["data"]>> | null)[]
 
@@ -73,6 +74,7 @@ export const remnode_data = function <Def extends AtomRemNode_Def>(params: RemNo
 
                 meta: {
                     source: "direct",
+                    statics: params.statics,
                 }
             }
         }
@@ -90,6 +92,7 @@ export const remnode_data = function <Def extends AtomRemNode_Def>(params: RemNo
                     meta: {
                         source: "optimistic",
                         request: real.meta,
+                        statics: params.statics,
                     },
                 }
             }
@@ -107,6 +110,7 @@ export const remnode_data = function <Def extends AtomRemNode_Def>(params: RemNo
                     meta: {
                         source: "fallback",
                         request: real.meta,
+                        statics: params.statics,
                     },
                 }
             }
@@ -119,6 +123,7 @@ export const remnode_data = function <Def extends AtomRemNode_Def>(params: RemNo
                 meta: {
                     source: "direct",
                     request: real.meta,
+                    statics: params.statics,
                 },
             }
         }
@@ -133,7 +138,8 @@ export const remnode_data = function <Def extends AtomRemNode_Def>(params: RemNo
                 }),
 
                 meta: {
-                    source: "direct"
+                    source: "direct",
+                    statics: params.statics,
                 },
             }
         }
