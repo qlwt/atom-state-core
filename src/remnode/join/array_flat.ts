@@ -1,0 +1,49 @@
+import type { AtomRemNode_Join_Factory } from "#src/remnode/type/Join.js"
+import * as sc from "@qyu/signal-core"
+
+type InferIt<Src extends Iterable<any>> = (Src extends Iterable<infer T>
+    ? T
+    : never
+)
+
+export type AtomRemNode_Join_ArrayFlat_Params<Param, TParam extends Iterable<any>, Result> = Readonly<{
+    transformer: (param: Param) => sc.OSignal<TParam>
+    source: AtomRemNode_Join_Factory<InferIt<TParam>, Result>
+}>
+
+export const atomremnode_join_array_flat = function <Param, TParam extends Iterable<any>,  Result>(
+    params: AtomRemNode_Join_ArrayFlat_Params<Param, TParam, Result>
+): AtomRemNode_Join_Factory<sc.OSignal<Param | null>, Result[]> {
+    return ({ reg }) => {
+        return param => {
+            const keys = sc.osignal_new_pipeflat(
+                param,
+                param_o => {
+                    if (param_o === null) {
+                        return null
+                    }
+
+                    return params.transformer(param_o)
+                }
+            )
+
+            return sc.osignal_new_memo(
+                sc.osignal_new_flat(sc.osignal_new_pipe(
+                    sc.osignal_new_listpipe(keys, key_o => {
+                        return sc.osignal_new_memo(reg(params.source)(key_o))
+                    }),
+                    results => {
+                        if (results === null) {
+                            return null
+                        }
+
+                        return sc.osignal_new_pipe(
+                            sc.osignal_new_merge(results),
+                            n => n.filter(i => i !== null)
+                        )
+                    }
+                ))
+            )
+        }
+    }
+}

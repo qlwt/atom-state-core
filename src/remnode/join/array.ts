@@ -1,12 +1,17 @@
 import type { AtomRemNode_Join_Factory } from "#src/remnode/type/Join.js"
 import * as sc from "@qyu/signal-core"
 
-export type AtomRemNode_Join_Array_Params<Param, TParam extends any[], Result> = Readonly<{
+type InferIt<Src extends Iterable<any>> = (Src extends Iterable<infer T>
+    ? T
+    : never
+)
+
+export type AtomRemNode_Join_Array_Params<Param, TParam extends Iterable<any>, Result> = Readonly<{
     transformer: (param: Param) => TParam
-    source: AtomRemNode_Join_Factory<TParam[number], Result>
+    source: AtomRemNode_Join_Factory<InferIt<TParam>, Result>
 }>
 
-export const atomremnode_join_array = function <Param, TParam extends any[], Result>(
+export const atomremnode_join_array = function <Param, TParam extends Iterable<any>,  Result>(
     params: AtomRemNode_Join_Array_Params<Param, TParam, Result>
 ): AtomRemNode_Join_Factory<sc.OSignal<Param | null>, Result[]> {
     return ({ reg }) => {
