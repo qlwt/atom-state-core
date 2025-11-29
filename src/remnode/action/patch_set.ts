@@ -3,46 +3,46 @@ import type { AtomRemNode, AtomRemNode_Def, AtomRemNode_OptimisticValue } from "
 import { ReqState__Status } from "#src/reqstate/type/State.js"
 import * as sc from "@qyu/signal-core"
 
-export type AtomRemNode_Action_Patch_Set_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = Readonly<{
-    real: Def["data"]
-    result: PromiseResult
-}>
+export type AtomRemNode_Action_Patch_Set_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = {
+    readonly real: Def["data"]
+    readonly result: PromiseResult
+}
 
 export type AtomRemNode_Action_Patch_Set_Request<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"]
-> = Readonly<{
-    promise: Promise<PromiseResult>
-    promise_interpret: (api: AtomRemNode_Action_Patch_Set_InterpretApi<Def, PromiseResult>) => Partial<Def["data"]> | null
+> = {
+    readonly promise: Promise<PromiseResult>
+    readonly promise_interpret: (api: AtomRemNode_Action_Patch_Set_InterpretApi<Def, PromiseResult>) => Partial<Def["data"]> | null
 
-    promise_abort?: () => void
-}>
+    readonly promise_abort?: () => void
+}
 
 export type AtomRemNode_Action_Patch_Set_Data<Data> = (
-    | Readonly<{
-        kind: "flat"
-        merge: boolean
-        value: Partial<Data>
-    }>
-    | Readonly<{
-        kind: "flat:factory"
-        value: (old: Partial<Data> | null) => Partial<Data>
-    }>
-    | Readonly<{
-        kind: "modifier"
-        value: (data: Data) => Data | undefined | void
-    }>
+    | {
+        readonly kind: "flat"
+        readonly merge: boolean
+        readonly value: Partial<Data>
+    }
+    | {
+        readonly kind: "flat:factory"
+        readonly value: (old: Partial<Data> | null) => Partial<Data>
+    }
+    | {
+        readonly kind: "modifier"
+        readonly value: (data: Data) => Data | undefined | void
+    }
 )
 
 export type AtomRemNode_Action_Patch_Set_Params<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"]
-> = Readonly<{
-    name: string
-    node: AtomRemNode<Def>
-    data: AtomRemNode_Action_Patch_Set_Data<Def["data"]>
-    request: AtomRemNode_Action_Patch_Set_Request<Def, PromiseResult>
-}>
+> = {
+    readonly name: string
+    readonly node: AtomRemNode<Def>
+    readonly data: AtomRemNode_Action_Patch_Set_Data<Def["data"]>
+    readonly request: AtomRemNode_Action_Patch_Set_Request<Def, PromiseResult>
+}
 
 const data_new = function <Data>(
     old_data: AtomRemNode_OptimisticValue<Data> | undefined | null,

@@ -1,10 +1,10 @@
 import type { AtomFamily_EntryChangeEvent, AtomFamily_Value } from "#src/family/type/AtomFamily.js"
 import * as sc from "@qyu/signal-core"
 
-export type Family_New_Params<P, V> = Readonly<{
-    get: (params: P, cache: (value: V) => void) => V
-    key: (params: P) => unknown
-}>
+export type Family_New_Params<P, V> = {
+    readonly get: (params: P, cache: (value: V) => void) => V
+    readonly key: (params: P) => unknown
+}
 
 export const family_new = function <P, V>(
     params: Family_New_Params<P, V>

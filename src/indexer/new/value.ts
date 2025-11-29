@@ -10,8 +10,8 @@ type Dep<Ref> = {
 
 export type Indexer_NewValue_Filter<Value> = Value
 
-export type Indexer_NewValue_Params = Readonly<{
-}>
+export type Indexer_NewValue_Params = {
+}
 
 export const indexer_new_value = function <Ref, Value>(
     _params: Indexer_NewValue_Params

@@ -8,12 +8,12 @@ export type AtomRemNode_OptimisticValue<Data> = (
     | Partial<Data>
 )
 
-export type AtomRemNode_Def = Readonly<{
-    data: {}
-    statics: {}
-    request_meta: any
-    request_result: any
-}>
+export type AtomRemNode_Def = {
+    readonly data: {}
+    readonly statics: {}
+    readonly request_meta: any
+    readonly request_result: any
+}
 
 export type AtomRemNode_Value<Def extends AtomRemNode_Def> = {
     readonly statics: Def["statics"]

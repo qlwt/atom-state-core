@@ -6,13 +6,13 @@ import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js"
 import { atomvalue_new } from "#src/value/atom/index.js"
 import type * as sc from "@qyu/signal-core"
 
-export type AtomFamily_NewIndexer_Params<Ref, Data, Filter, Param = Filter> = Readonly<{
-    indexer: () => Indexer<Ref, Data, Filter>
-    connect: (indexer: Indexer<Ref, Data, Filter>) => AtomSelectorStatic<VoidFunction>
+export type AtomFamily_NewIndexer_Params<Ref, Data, Filter, Param = Filter> = {
+    readonly indexer: () => Indexer<Ref, Data, Filter>
+    readonly connect: (indexer: Indexer<Ref, Data, Filter>) => AtomSelectorStatic<VoidFunction>
 
-    key?: (param: Param) => unknown
-    param?: (param: Param) => Filter
-}>
+    readonly key?: (param: Param) => unknown
+    readonly param?: (param: Param) => Filter
+}
 
 export const atomfamily_new_indexer = function <Ref, Data, Filter, Param = Filter>(
     params: AtomFamily_NewIndexer_Params<Ref, Data, Filter, Param>

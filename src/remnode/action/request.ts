@@ -9,27 +9,27 @@ export type AtomRemNode_Action_Request_InterpretApi<
     Def extends AtomRemNode_Def,
     PromiseResult,
     PromiseMeta
-> = Readonly<{
-    meta: PromiseMeta
-    result: PromiseResult
-    fallback: Def["data"] | null
-    optimistic: Def["data"] | null
-}>
+> = {
+    readonly meta: PromiseMeta
+    readonly result: PromiseResult
+    readonly fallback: Def["data"] | null
+    readonly optimistic: Def["data"] | null
+}
 
 export type AtomRemNode_Action_Request_Request<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"],
     PromiseMeta extends Def["request_meta"],
-> = Readonly<{
-    meta: PromiseMeta
+> = {
+    readonly meta: PromiseMeta
 
-    promise: Promise<PromiseResult>
-    promise_abort: VoidFunction
-    promise_interpret: (api: AtomRemNode_Action_Request_InterpretApi<Def, PromiseResult, PromiseMeta>) => Def["data"] | null
-    promise_target?: (api: AtomRemNode_Action_Request_InterpretApi<Def, PromiseResult, PromiseMeta>) => AtomRemNode<Def> | null
+    readonly promise: Promise<PromiseResult>
+    readonly promise_abort: VoidFunction
+    readonly promise_interpret: (api: AtomRemNode_Action_Request_InterpretApi<Def, PromiseResult, PromiseMeta>) => Def["data"] | null
+    readonly promise_target?: (api: AtomRemNode_Action_Request_InterpretApi<Def, PromiseResult, PromiseMeta>) => AtomRemNode<Def> | null
 
-    promise_after?: (promise: Promise<PromiseResult>) => void
-}>
+    readonly promise_after?: (promise: Promise<PromiseResult>) => void
+}
 
 export type AtomRemNode_Action_Request_Optimistic<Def extends AtomRemNode_Def> = {
     fallback: boolean
@@ -54,10 +54,10 @@ export type AtomRemNode_Action_Request_Params<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"],
     PromiseMeta extends Def["request_meta"],
-> = Readonly<{
-    optimistic?: AtomRemNode_Action_Request_Optimistic<Def>
-    request: () => AtomRemNode_Action_Request_Request<Def, PromiseResult, PromiseMeta>
-}>
+> = {
+    readonly optimistic?: AtomRemNode_Action_Request_Optimistic<Def>
+    readonly request: () => AtomRemNode_Action_Request_Request<Def, PromiseResult, PromiseMeta>
+}
 
 export const atomremnode_action_request = function <
     Def extends AtomRemNode_Def,

@@ -6,10 +6,10 @@ type InferIt<Src extends Iterable<any>> = (Src extends Iterable<infer T>
     : never
 )
 
-export type AtomRemNode_Join_ArrayFlat_Params<Param, TParam extends Iterable<any>, Result> = Readonly<{
-    transformer: (param: Param) => sc.OSignal<TParam>
-    source: AtomRemNode_Join_Factory<InferIt<TParam>, Result>
-}>
+export type AtomRemNode_Join_ArrayFlat_Params<Param, TParam extends Iterable<any>, Result> = {
+    readonly transformer: (param: Param) => sc.OSignal<TParam>
+    readonly source: AtomRemNode_Join_Factory<InferIt<TParam>, Result>
+}
 
 export const atomremnode_join_array_flat = function <Param, TParam extends Iterable<any>,  Result>(
     params: AtomRemNode_Join_ArrayFlat_Params<Param, TParam, Result>

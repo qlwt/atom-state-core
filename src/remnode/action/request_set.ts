@@ -9,25 +9,25 @@ export type AtomRemNode_Action_RequestSet_InterpretApi<
     Def extends AtomRemNode_Def,
     PromiseResult,
     PromiseMeta
-> = Readonly<{
-    meta: PromiseMeta
-    result: PromiseResult
-    fallback: Def["data"] | null
-    optimistic: Def["data"] | null
-}>
+> = {
+    readonly meta: PromiseMeta
+    readonly result: PromiseResult
+    readonly fallback: Def["data"] | null
+    readonly optimistic: Def["data"] | null
+}
 
 export type AtomRemNode_Action_RequestSet_RequestSet<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"],
     PromiseMeta extends Def["request_meta"],
-> = Readonly<{
-    meta: PromiseMeta
+> = {
+    readonly meta: PromiseMeta
 
-    promise: Promise<PromiseResult>
-    promise_abort?: () => void
-    promise_interpret: (api: AtomRemNode_Action_RequestSet_InterpretApi<Def, PromiseResult, PromiseMeta>) => Def["data"] | null
-    promise_target?: (api: AtomRemNode_Action_RequestSet_InterpretApi<Def, PromiseResult, PromiseMeta>) => AtomRemNode<Def> | null
-}>
+    readonly promise: Promise<PromiseResult>
+    readonly promise_abort?: () => void
+    readonly promise_interpret: (api: AtomRemNode_Action_RequestSet_InterpretApi<Def, PromiseResult, PromiseMeta>) => Def["data"] | null
+    readonly promise_target?: (api: AtomRemNode_Action_RequestSet_InterpretApi<Def, PromiseResult, PromiseMeta>) => AtomRemNode<Def> | null
+}
 
 export type AtomRemNode_Action_RequestSet_Optimistic<Def extends AtomRemNode_Def> = {
     fallback: boolean
@@ -52,10 +52,10 @@ export type AtomRemNode_Action_RequestSet_Params<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"],
     PromiseMeta extends Def["request_meta"],
-> = Readonly<{
-    request: AtomRemNode_Action_RequestSet_RequestSet<Def, PromiseResult, PromiseMeta>
-    optimistic?: AtomRemNode_Action_RequestSet_Optimistic<Def>
-}>
+> = {
+    readonly request: AtomRemNode_Action_RequestSet_RequestSet<Def, PromiseResult, PromiseMeta>
+    readonly optimistic?: AtomRemNode_Action_RequestSet_Optimistic<Def>
+}
 
 export const atomremnode_action_request_set = function <
     Def extends AtomRemNode_Def,

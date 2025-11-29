@@ -1,58 +1,58 @@
 import type { AtomRemNode_Def } from "#src/remnode/type/State.js"
 import type { ReqState__Status } from "#src/reqstate/type/State.js"
 
-type State_Empty<Def extends AtomRemNode_Def> = Readonly<{
-    status: ReqState__Status.Empty
-    data: null
+type State_Empty<Def extends AtomRemNode_Def> = {
+    readonly status: ReqState__Status.Empty
+    readonly data: null
 
-    meta: {
-        source: "direct"
-        statics: Def["statics"]
+    readonly meta: {
+        readonly source: "direct"
+        readonly statics: Def["statics"]
     }
-}>
+}
 
-type State_Pending_Null<Def extends AtomRemNode_Def> = Readonly<{
-    status: ReqState__Status.Pending
-    data: null
+type State_Pending_Null<Def extends AtomRemNode_Def> = {
+    readonly status: ReqState__Status.Pending
+    readonly data: null
 
-    meta: {
-        source: "direct"
-        statics: Def["statics"]
-        request: Def["request_meta"]
+    readonly meta: {
+        readonly source: "direct"
+        readonly statics: Def["statics"]
+        readonly request: Def["request_meta"]
     }
-}>
+}
 
-type State_Pending_Optimistic<Def extends AtomRemNode_Def> = Readonly<{
-    status: ReqState__Status.Pending
-    data: Def["data"]
+type State_Pending_Optimistic<Def extends AtomRemNode_Def> = {
+    readonly status: ReqState__Status.Pending
+    readonly data: Def["data"]
 
-    meta: {
-        source: "optimistic"
-        statics: Def["statics"]
-        request: Def["request_meta"]
+    readonly meta: {
+        readonly source: "optimistic"
+        readonly statics: Def["statics"]
+        readonly request: Def["request_meta"]
     }
-}>
+}
 
-type State_Pending_Fallback<Def extends AtomRemNode_Def> = Readonly<{
-    status: ReqState__Status.Pending
-    data: Def["data"]
+type State_Pending_Fallback<Def extends AtomRemNode_Def> = {
+    readonly status: ReqState__Status.Pending
+    readonly data: Def["data"]
 
-    meta: {
-        source: "fallback"
-        statics: Def["statics"]
-        request: Def["request_meta"]
+    readonly meta: {
+        readonly source: "fallback"
+        readonly statics: Def["statics"]
+        readonly request: Def["request_meta"]
     }
-}>
+}
 
-type State_Fulfilled<Def extends AtomRemNode_Def> = Readonly<{
-    status: ReqState__Status.Fulfilled
-    data: Def["data"]
+type State_Fulfilled<Def extends AtomRemNode_Def> = {
+    readonly status: ReqState__Status.Fulfilled
+    readonly data: Def["data"]
 
-    meta: {
-        source: "direct"
-        statics: Def["statics"]
+    readonly meta: {
+        readonly source: "direct"
+        readonly statics: Def["statics"]
     }
-}>
+}
 
 export type AtomRemNode__Data<Def extends AtomRemNode_Def> = (
     | State_Empty<Def>

@@ -11,12 +11,12 @@ const clone = function <Data extends {}>(source: Data, cloner?: (data: Data) => 
     return structuredClone(source)
 }
 
-type Optimistic__Apply_Params<Data extends {}> = Readonly<{
-    source: Data
-    updates: (AtomRemReq_State<AtomRemNode_OptimisticValue<Data>> | null)[]
+type Optimistic__Apply_Params<Data extends {}> = {
+    readonly source: Data
+    readonly updates: (AtomRemReq_State<AtomRemNode_OptimisticValue<Data>> | null)[]
 
-    real_clone?: (data: Data) => Data
-}>
+    readonly real_clone?: (data: Data) => Data
+}
 
 const optimistic_apply = function <Data extends {}>(params: Optimistic__Apply_Params<Data>): Data {
     let cpy: Data = clone(params.source, params.real_clone)
@@ -54,13 +54,13 @@ const optimistic_apply = function <Data extends {}>(params: Optimistic__Apply_Pa
     return cpy
 }
 
-export type RemNode__Data_Params<Def extends AtomRemNode_Def> = Readonly<{
-    statics: Def["statics"]
-    real: ReqState<Def["data"], Def["request_meta"], Def["request_result"]>,
-    optimistic: (AtomRemReq_State<AtomRemNode_OptimisticValue<Def["data"]>> | null)[]
+export type RemNode__Data_Params<Def extends AtomRemNode_Def> = {
+    readonly statics: Def["statics"]
+    readonly real: ReqState<Def["data"], Def["request_meta"], Def["request_result"]>,
+    readonly optimistic: (AtomRemReq_State<AtomRemNode_OptimisticValue<Def["data"]>> | null)[]
 
-    real_clone?: (data: Def["data"]) => Def["data"]
-}>
+    readonly real_clone?: (data: Def["data"]) => Def["data"]
+}
 
 export const remnode_data = function <Def extends AtomRemNode_Def>(params: RemNode__Data_Params<Def>): AtomRemNode__Data<Def> {
     const { real, optimistic } = params

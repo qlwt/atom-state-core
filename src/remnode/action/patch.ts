@@ -4,57 +4,57 @@ import { reqstate_new_fulfilled } from "#src/reqstate/new/fulfilled.js"
 import { ReqState__Status } from "#src/reqstate/type/State.js"
 import * as sc from "@qyu/signal-core"
 
-export type AtomRemNode_Action_Patch_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = Readonly<{
-    real: Def["data"]
-    result: PromiseResult
-}>
+export type AtomRemNode_Action_Patch_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = {
+    readonly real: Def["data"]
+    readonly result: PromiseResult
+}
 
-export type AtomRemNode_Action_Patch_Request_Params<Def extends AtomRemNode_Def> = Readonly<{
-    real: Def["data"]
-}>
+export type AtomRemNode_Action_Patch_Request_Params<Def extends AtomRemNode_Def> = {
+    readonly real: Def["data"]
+}
 
 export type AtomRemNode_Action_Patch_Request<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"]
-> = Readonly<{
-    promise_after?: (promise: Promise<PromiseResult>) => void
+> = {
+    readonly promise_after?: (promise: Promise<PromiseResult>) => void
 
-    promise: Promise<PromiseResult>
-    promise_abort: VoidFunction
-    promise_interpret: (api: AtomRemNode_Action_Patch_InterpretApi<Def, PromiseResult>) => Partial<Def["data"]> | null
-}>
+    readonly promise: Promise<PromiseResult>
+    readonly promise_abort: VoidFunction
+    readonly promise_interpret: (api: AtomRemNode_Action_Patch_InterpretApi<Def, PromiseResult>) => Partial<Def["data"]> | null
+}
 
 export type AtomRemNode_Action_Patch_Data<Data> = (
-    | Readonly<{
-        kind: "flat"
-        merge: boolean
-        value: Partial<Data>
-    }>
-    | Readonly<{
-        kind: "flat:factory"
-        value: (old: Partial<Data> | null) => Partial<Data>
-    }>
-    | Readonly<{
-        kind: "modifier"
-        value: (data: Data) => Data | undefined | void
-    }>
+    | {
+        readonly kind: "flat"
+        readonly merge: boolean
+        readonly value: Partial<Data>
+    }
+    | {
+        readonly kind: "flat:factory"
+        readonly value: (old: Partial<Data> | null) => Partial<Data>
+    }
+    | {
+        readonly kind: "modifier"
+        readonly value: (data: Data) => Data | undefined | void
+    }
 )
 
-export type AtomRemNode_Action_Patch_Config = Readonly<{
-    delay?: number | null
-}>
+export type AtomRemNode_Action_Patch_Config = {
+    readonly delay?: number | null
+}
 
 export type AtomRemNode_Action_Patch_Params<
     Def extends AtomRemNode_Def,
     PromiseResult extends Def["request_result"]
-> = Readonly<{
-    name: string
-    node: AtomRemNode<Def>
-    data: AtomRemNode_Action_Patch_Data<Def["data"]>
-    request: (params: AtomRemNode_Action_Patch_Request_Params<Def>) => AtomRemNode_Action_Patch_Request<Def, PromiseResult>
+> = {
+    readonly name: string
+    readonly node: AtomRemNode<Def>
+    readonly data: AtomRemNode_Action_Patch_Data<Def["data"]>
+    readonly request: (params: AtomRemNode_Action_Patch_Request_Params<Def>) => AtomRemNode_Action_Patch_Request<Def, PromiseResult>
 
-    config?: AtomRemNode_Action_Patch_Config
-}>
+    readonly config?: AtomRemNode_Action_Patch_Config
+}
 
 const data_new = function <Data>(
     old_data: AtomRemNode_OptimisticValue<Data> | undefined | null,

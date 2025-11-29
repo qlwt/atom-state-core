@@ -29,10 +29,10 @@ export type AtomRemNode_Join_Root_Params<
     Param,
     Def extends AtomRemNode_Def,
     Properties extends G_Properties<Def>
-> = Readonly<{
-    properties: Properties
-    link: AtomSelectorStatic<(index: Param) => AtomRemNode_Value<Def>>
-}>
+> = {
+    readonly properties: Properties
+    readonly link: AtomSelectorStatic<(index: Param) => AtomRemNode_Value<Def>>
+}
 
 export const atomremnode_join_root = function <
     Param,

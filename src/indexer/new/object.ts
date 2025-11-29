@@ -20,13 +20,13 @@ export type Indexer_NewObject_Data<Fields extends Indexer_NewObject_Fields<any>>
     [K in keyof Fields]: Indexer_InferData<Fields[K]>
 } | null | undefined
 
-export type Indexer_NewObject_Filter<Fields extends Indexer_NewObject_Fields<any>> = Readonly<{
-    [K in keyof Fields]?: Indexer_InferFilter<Fields[K]>
-}>
+export type Indexer_NewObject_Filter<Fields extends Indexer_NewObject_Fields<any>> = {
+    readonly [K in keyof Fields]?: Indexer_InferFilter<Fields[K]>
+}
 
-export type Indexer_NewObject_Params<Fields extends Indexer_NewObject_Fields<any>> = Readonly<{
-    fields: Fields
-}>
+export type Indexer_NewObject_Params<Fields extends Indexer_NewObject_Fields<any>> = {
+    readonly fields: Fields
+}
 
 export const indexer_new_object = function <Fields extends Indexer_NewObject_Fields<any>>(
     params: Indexer_NewObject_Params<Fields>
