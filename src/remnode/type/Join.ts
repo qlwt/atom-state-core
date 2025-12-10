@@ -15,8 +15,8 @@ export type AtomRemNode_Join_Resolver<Param, Result> = {
 
 export type AtomRemNode_Join_Required<Raw extends AtomRemNode_Join<any, any>> = (
     AtomRemNode_JoinFull<
-        Raw extends AtomRemNode_Join<infer T, any> ? T : never,
-        Raw extends AtomRemNode_Join<any, infer T> ? T : never
+        Raw extends AtomRemNode__Data<infer T> ? T : never,
+        {}
     >
 )
 
