@@ -7,10 +7,12 @@ import * as sc from "@qyu/signal-core"
 export type AtomRemNode_Action_Patch_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = {
     readonly real: Def["data"]
     readonly result: PromiseResult
+    readonly patch: null | Partial<Def["data"]>
 }
 
 export type AtomRemNode_Action_Patch_Request_Params<Def extends AtomRemNode_Def> = {
     readonly real: Def["data"]
+    readonly patch: null | Partial<Def["data"]>
 }
 
 export type AtomRemNode_Action_Patch_Request<
@@ -152,6 +154,7 @@ export const atomremnode_action_patch = function <
                                 // create request
                                 const request_original = params.request({
                                     real: target_o.data,
+                                    patch: typeof data === "object" ? data : null,
                                 })
 
                                 // add custom abort
@@ -178,7 +181,8 @@ export const atomremnode_action_patch = function <
                                     if (real_prev.status === ReqState__Status.Fulfilled) {
                                         const interpretation = request_parsed.promise_interpret({
                                             result,
-                                            real: real_prev
+                                            real: real_prev,
+                                            patch: typeof data === "object" ? data : null,
                                         })
 
                                         if (interpretation) {

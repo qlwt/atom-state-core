@@ -6,6 +6,7 @@ import * as sc from "@qyu/signal-core"
 export type AtomRemNode_Action_Patch_Set_InterpretApi<Def extends AtomRemNode_Def, PromiseResult> = {
     readonly real: Def["data"]
     readonly result: PromiseResult
+    readonly patch: Partial<Def["data"]> | null
 }
 
 export type AtomRemNode_Action_Patch_Set_Request<
@@ -126,7 +127,8 @@ export const atomremnode_action_patch_set = function <
                             if (real_prev.status === ReqState__Status.Fulfilled) {
                                 const interpretation = params.request.promise_interpret({
                                     result,
-                                    real: real_prev
+                                    real: real_prev,
+                                    patch: typeof data === "object" ? data : null,
                                 })
 
                                 if (interpretation) {
