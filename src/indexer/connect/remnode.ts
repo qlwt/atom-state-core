@@ -80,7 +80,7 @@ export const indexer_connect_remnode = function <Def extends AtomRemNode_Def>(
                     sub
                 })
 
-                esignal.addsub(sub)
+                esignal.addsub(sub, { order: 1 })
             }
         }
 

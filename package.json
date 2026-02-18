@@ -1,7 +1,7 @@
 {
     "name": "@qyu/atom-state-core",
     "type": "module",
-    "version": "4.4.1",
+    "version": "5.0.0",
     "main": "./build/bundle/entry/index.js",
     "description": "Atomic Storage definition and implementation",
     "homepage": "https://github.com/qlwt/atom-state-core#readme",
@@ -39,6 +39,6 @@
     },
     "dependencies": {
         "tslib": "^2.6.3",
-        "@qyu/signal-core": "^1.3.0"
+        "@qyu/signal-core": "^2.0.0"
     }
 }

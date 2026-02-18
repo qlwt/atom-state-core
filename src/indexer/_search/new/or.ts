@@ -42,7 +42,7 @@ export const indexersearch_new_or = function <Src extends IndexerSearch<any, any
         watcher_new: (filters) => {
             const deps = filters.map(filter => src.watcher_new(filter))
 
-            const watcher = sc.osignal_new_pipe(
+            const watcher = sc.osignal_new_memo(sc.osignal_new_pipe(
                 sc.osignal_new_merge(deps),
                 deps_o => {
                     if (deps_o.length === 0) {
@@ -63,7 +63,7 @@ export const indexersearch_new_or = function <Src extends IndexerSearch<any, any
 
                     return result
                 }
-            )
+            ))
 
             return watcher
         },

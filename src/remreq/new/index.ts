@@ -5,6 +5,8 @@ export const remreq_new = function <Data>(): AtomRemReq_Value<Data> {
     const state = sc.signal_new_value<AtomRemReq_State<Data> | null>(null)
 
     return {
+        ...state,
+
         input: (message: AtomRemReq_State<Data> | null) => {
             state.output()?.abort()
 
@@ -33,18 +35,6 @@ export const remreq_new = function <Data>(): AtomRemReq_Value<Data> {
             } else {
                 state.input(null)
             }
-        },
-
-        output: () => {
-            return state.output()
-        },
-
-        rmsub: sub => {
-            state.rmsub(sub)
-        },
-
-        addsub: (sub, config) => {
-            state.addsub(sub, config)
         },
     }
 }

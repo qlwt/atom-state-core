@@ -44,7 +44,7 @@ export const indexer_new_value = function <Ref, Value>(
 
                 // remove from current slot
                 if (deps.refs.size > 1 || deps.listeners.size > 0) {
-                    const now_refs = new Set(deps.refs)
+                    const now_refs = deps.refs
 
                     now_refs.delete(ref)
 
@@ -74,7 +74,7 @@ export const indexer_new_value = function <Ref, Value>(
             const deps = map_dep.get(data)
 
             if (deps !== undefined) {
-                const now_refs = new Set(deps.refs)
+                const now_refs = deps.refs
 
                 now_refs.add(ref)
 
@@ -129,7 +129,7 @@ export const indexer_new_value = function <Ref, Value>(
                     // add to new deps
                     // if now_deps exist - just add, else - create
                     if (now_deps !== undefined) {
-                        const now_refs = new Set(now_deps.refs)
+                        const now_refs = now_deps.refs
 
                         now_refs.add(ref)
 

@@ -213,7 +213,7 @@ export const indexer_new_object = function <Fields extends Indexer_NewObject_Fie
                 }
             }
 
-            const watcher = sc.osignal_new_pipe(
+            const watcher = sc.osignal_new_memo(sc.osignal_new_pipe(
                 sc.osignal_new_merge(children),
                 lists => {
                     if (lists.length === 0) {
@@ -244,7 +244,7 @@ export const indexer_new_object = function <Fields extends Indexer_NewObject_Fie
                         return result
                     }
                 }
-            )
+            ))
 
             map_watcher.set(watcher, watcherdep)
 
