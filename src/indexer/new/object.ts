@@ -244,7 +244,7 @@ export const indexer_new_object = function <Fields extends Indexer_NewObject_Fie
                         return result
                     }
                 }
-            ))
+            ), null)
 
             map_watcher.set(watcher, watcherdep)
 
