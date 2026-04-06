@@ -1,664 +1,1311 @@
 # @qyu/atom-state-core
 
-Definition and impelemntation of atomic state manager
+Definition and impelemntation of a global state manager
 
 ## Usage Example
 
 ```typescript
-const store = atomstore_new()
+import * as asc from "@qyu/atom-state-core"
 
-const width = atomvalue_new(() => {
+const store = asc.store_new()
+
+const width_atom = asc.value_atom(() => {
     return 10
 })
 
-const height = atomvalue_new(() => {
+const height_atom = asc.value_atom(() => {
     return 20
 })
 
-const size = atomvalue_new(store => {
+const size = asc.value_atom(({ reg }) => {
     // store.reg will get existing value from store or register it
-    return store.reg(width) * store.reg(height)
+    return reg(width_atom) * reg(height_atom)
 })
 
-console.log(sotre.reg(size))
+// 200
+console.log(store.reg(size))
 ```
 
-## Concept
+## Concept and Definitions
 
-- Create handlers - functions that accept store as parameter and do things
-- Calling it will store.reg() will return cached value or register it
-- All values in register are defined once and you should use signals for listen api and mutability
+- This library solves problems related to global state management and remote state management on the client
+- `Store` is an object that stores the state
+- `Atom` is the way you define the state - it is a function that takes `Store` (and some api) as parameters and registers it's value
+- When you register `Atom` into a `Store`, it is saved in the `Store`. Trying to register the same `Atom` in the Store will return saved value
+- `Store` does not provide mutability functionality, so any mutable state should be defined with `Signals`
 
-## Atom Value
+## Basic Components
+
+### Atom Value
 
 Will call cb and register return when called
 
 ```typescript
-const atomvalue = atomvalue_new(store => {
+import * as asc from "@qyu/atom-state-core"
+
+const atom = asc.value_atom((store: Store) => {
     return 10
+})
+
+// to define a cleanup mechanism in case you delete value from register later
+const atom = asc.value_atom_advanced((store: Store) => {
+    return {
+        value: 10,
+
+        config: {
+            cleanup: () => {
+                console.log("cleanup")
+            },
+        },
+    }
 })
 ```
 
-## Atom State
+### Atom State
 
 Uses return as initial value for signal from @qyu/signal-core
 
 ```typescript
-const atomstate = atomstate_new(store => {
+import * as asc from "@qyu/atom-state-core"
+
+const store = asc.store_new()
+
+const atom_amount = asc.state_atom(store => {
     return 10
 })
 
-store.reg(atomstate).input(50)
-// 50
-console.log(store.reg(atomstate).output())
-```
+const atom_width = asc.state_atom_advanced(store => {
+    const controller = new AbortController()
 
-## Atom Selector
-
-Will return value based on store, but does not get cached. Useful for transforming state
-
-```typescript
-const atomvalue = atomvalue_new(() => 10)
-
-const atomselector = (store: AtomStore) => ({ 
-    value: store.reg(atomvalue) 
-})
-
-// false
-console.log(store.reg(atomselector) === store.reg(atomselector))
-```
-
-## Atom Action
-
-Just a function that has AtomStore as a parameter
-
-```typescript
-const atomvalue = atomvalue_new(() => 10)
-
-const atomaction = (store: AtomStore) => {
-    console.log(store.reg(atomvalue)) 
-}
-
-// 10
-atomaction(store)
-```
-
-## Atom Family
-
-Basically a cached map
-
-```typescript
-const atomfamily = atomfamily_new({
-    // value will be cached inside family
-    get: (a: number, b: number) => atomvalue_new({ a, b }),
-    // unique key that value will be cached with
-    key: (a: number, b: number) => `${a} ${b}`
-})
-
-const family = store.reg(atomfamily)
-
-family.reg(10, 51)
-```
-
-## Atom Selector Child
-
-Utility to get child selector from family
-
-```typescript
-const atomfamily = atomfamily_new({
-    // value will be cached inside family
-    get: (a: number, b: number) => atomvalue_new({ a, b }),
-    // unique key that value will be cached with
-    key: (a: number, b: number) => `${a} ${b}`
-})
-
-const selector = atomfamily_sel_child({
-    params: [10, 15],
-    family: atomfamily
-})
-
-// { a: 10, b: 15 }
-console.log(store.reg(selector))
-```
-
-## Atom RemState
-
-Represents Remote State
-
-```typescript
-// reqstate is a special state that exists in three different variants: empty, pending, fulfilled
-// it's pretty intuitive and this section has enough examples of usage with commets
-const atomremote = atomremstate_new<string>(store => reqstate_new_empty())
-
-const remote = store.reg(atomremote)
-
-const api_request = () => {
-    let id: Timer
-
-    return reqstate_new_pending<string>({
-        promise: new Promise(resolve => {
-            id = setTimeout(
-                () => {
-                    // may resolve with any kind of reqstate emptying state, initiating new request or fulfilling
-                    resolve(reqstate_new_fulfilled("Hello World"))
-                },
-                500
-            )
-        }),
-
-        abort: () => clearTimeout(id)
+    window.addEventListener("resize", () => {
+        store.reg(atom_width).input(window.innerWidth)
     })
-}
-
-remote.addsub(() => {
-    console.log(
-        // extract data from reqstate, use null on fallback, second paramter is set on default
-        reqstate_data(remote.output(), () => null)
-    )
-})
-
-// will pring null
-remote.input(api_request())
-// will abort previous request
-// also will print null again
-remote.input(api_request())
-// in 0.5 seconds will pring "Hello World"
-```
-
-## Atom RemReq
-
-Made to hold request state. Intended to be used as tracker for requests or optimistic updates
-
-```typescript
-const remreq = store.reg(atomremreq_new())
-
-const api = function () {
-    let interrupted = false
-    let reject: VoidFunction | undefined = undefined
 
     return {
-        data: {
-            name: "John Smith",
+        init: window.innerWidth,
+
+        config: {
+            cleanup: () => {
+                controller.abort()
+            },
         },
-
-        abort: () => {
-            interrupted = true
-
-            reject?.()
-
-            console.log("aborted")
-        },
-
-        promise: new Promise((res, rej) => {
-            reject = rej
-
-            setTimeout(() => {
-                if (!interrupted) { resolve() }
-            }, 500)
-        })
     }
-}
-
-// will register request with data
-remreq.input(api())
-
-// { name: "John Smith" }
-console.log(remreq.output().data)
-
-// interrupts previous request
-remreq.input(api())
-```
-
-## Atom Selector Remote Data
-
-Utility selector to get data from remotedata
-
-```typescript
-const atomremote = remstate_new<string>(() => reqstate_new_empty())
-// second argument is fallback value, it's optional and () => null by default
-const atomremote_data = remstate_sel_data(atomremote, () => null)
-
-const remote = store.reg(atomremote)
-const remote_data = store.reg(atomremote_data)
-
-remote_data.addsub(() => {
-    console.log(remote_data.output())
 })
 
-remote.input(reqstate_new_empty())
-remote.input(reqstate_new_fulfilled("Hello World"))
-remote.input(reqstate_new_empty())
+store.reg(atom_amount).input(50)
+// 50
+console.log(store.reg(atom_amount).output())
+// whatever your webpage width is
+console.log(store.reg(atom_width).output())
+
+store.reg(atom_width).addsub(() => {
+    console.log(store.reg(atom_width).output())
+})
 ```
 
-## Atom Loader
+### Selectors
 
-Connects when requested, disconnected when does not
-
-### Atom Loader Pure
-
-Does not get any paramters
-Example with requesting user data
+- `Selectors` are defined as an `Atom` that does not register a state
+- They are intended as an interface for functions that depend on the `Store`, but do not need to memorise the output
 
 ```typescript
-const atomstate_id = atomstate_new<number>(() => 0)
-const atomremote = atomremstate_new<string>(() => reqstate_new_empty())
+import * as asc from "@qyu/atom-state-core"
 
-// fake api request
-const api_request_user = function (id: number, signal: AbortSignal): Promise<string> {
-    return new Promise((resolve) => {
-        let timer: Timer
+const store = asc.store_new()
 
-        const interrupt = () => {
-            resolve(reqstate_new_empty())
+const width = asc.value_atom(() => 50)
+const height = asc.value_atom(() => 100)
 
-            clearTimeout(timer)
-            signal.removeEventListener("abort", interrupt)
+const dimension_new = (iscolumn: boolean) => { 
+    return asc.selector_atom(({ reg }) => {
+        if (iscolumn) {
+            return reg(height)
         }
 
-        if (!signal.aborted) {
-            signal.addEventListener("abort", interrupt)
-
-            id = setTimeout(
-                () => {
-                    resolve(JSON.stringify({ name: "username", id }))
-                },
-                500
-            )
-        }
+        return reg(width)
     })
 }
 
-const atomloader = atomloader_new_pure({
-    // will start connection immediately when requested
-    throttler: throttler_new_immediate(),
-    // as alternative - use microtask throttler, it will schedule requests with Promise.resolve()
-    // very usefull to prevent unnecessary requests when loader connection is unstable for some reason (eg. react effect hooks)
-    // throttler: throttler_new_microtask(),
-
-    connect: store => {
-        const remote = store.reg(atomremote)
-        const state_id = store.reg(atomstate_id)
-
-        return signal_listen({
-            target: state_id,
-
-            config: {
-                emit: true
-            },
-
-            listener: () => {
-                const id = state_id.output()
-                const abortcontroller = new AbortController()
-                const promise = api_request_user(id, abortcontroller.signal)
-                // adapt promise for expected format
-                const promise_wrapped = promise.then(reqstate_new_fulfilled).catch(reqstate_new_empty)
-
-                remote.input(reqstate_new_pending({
-                    promise: promise_wrapped,
-                    abort: () => abortcontroller.abort()
-                }))
-
-                return () => abortcontroller.abort()
-            }
-        })
-    }
-})
-
-const remote = store.reg(atomremote)
-const loader = store.reg(atomloader)
-const state_id = store.reg(atomstate_id)
-
-remote.addsub(() => {
-    console.log(asc.reqstate_data(remote.output()))
-})
-
-// will start request for initial value of id
-// calling request from multiple places will increase internal counter so you need to cancel all of them to interrupt loader
-const cancel = loader.request()
-
-// will interrupt previous one and start request for new input
-state_id.input(50)
-
-// change parameter after some time
-setTimeout(() => {
-    state_id.input(90)
-
-    // cancel loader after some time, value stays in remote
-    setTimeout(() => {
-        cancel()
-    }, 1000)
-}, 1000)
+// will not be memorised
+// 100
+console.log(store.reg(dimension_new(true)))
 ```
 
-## Atom Loader Concurrent
+### Atom Action
 
-Similar to pure loader, but accepts parameter and calls connection with higher priority parameter, restarts every time it changes
+- A function that gets `Store` as a parameter and returns nothing
+- A subtype of `Selector`. Does not get memorised
 
 ```typescript
-const atomloader = atomloader_new_concurrent<[number, number]>({
-    throttler: throttler_new_microtask(),
+import * as asc from "@qyu/atom-state-core"
 
-    comparator: (a, b) => {
-        return a[0] + a[1] - b[0] - b[1]
-    },
+const store = asc.store_new()
+const width = asc.value_atom(() => 10)
+const height = asc.value_atom(() => 10)
 
-    connect: (a, b) => store => {
-        console.log({ a, b })
-
-        return () => {
-            console.log("cleanup", { a, b })
+const action_new = (iscolumn: boolean): asc.Action_Atom => {
+    return ({ reg }) => {
+        if (iscolumn) {
+            console.log(reg(height))
+        } else {
+            console.log(reg(height))
         }
     }
-})
+}
 
-const loader = store.reg(atomloader)
-
-const cancel_low = loader.request(1, 2)
-// will be on top
-const cancel_top = loader.request(5, 7)
-const cancel_mid = loader.request(3, 5)
-
-// no printing anything yet because connection is throttled
-setTimeout(() => {
-    // does nothing
-    cancel_mid()
-
-    setTimeout(() => {
-        // second one is on top so will reconnect
-        cancel_top()
-
-        setTimeout(() => {
-            // clear connection completely
-            cancel_low()
-        }, 100)
-    }, 100)
-}, 100)
+store.dispatch(action_new())
 ```
 
-## Handling remote data with AtomRemoteNode
+### Atom Family
 
-Designed specifically for sql-like data sorted in nodes and tables (families in this case).
+- Behaves very similar to `Store`, maintains its own registry
+- Unlike in `Store` accepts custom type, from wich it creates an `Atom`
 
 ```typescript
-const store = atomstore_new()
+import * as asc from "@qyu/atom-state-core"
 
-// node definition
-type ItemDef = {
-    // it defines what meta (additional information attached to request) and result you could have in pending requests
-    // normally you dont need it, just put to any
-    request_meta: any
-    request_result: any
+const store = asc.store_new()
 
-    // available when resolved, may change
+const atom_family = asc.family_atom_hash(() => ({
+    // hash key used to search for an input in the registry
+    key: (id: string) => id,
+    // Atom will be saved to the family
+    get: (id: string) => asc.state_atom(() => ({ value: 0 })),
+}))
+
+const family = store.reg(atom_family)
+
+// 0
+console.log(family.reg("13").output().value)
+// true
+console.log(family.reg("13") === family.reg("13"))
+
+family.reg("13").input({ value: 10 })
+
+// 10
+console.log(family.reg("13").output().value)
+```
+
+## Working with remote state
+
+- It is expected for remote state to be organised in a sql-like manner
+- `RemNode` represents a row.
+- `Family` of `RemNode` indexed by Primary Key represents a table
+- `Indexer` helps with relations between tables and rows
+- `Join` helps working resolving relations into structured object
+- Also there are utilities to help handling common operations
+
+### RemNode
+
+- Is a collection of signals
+- `.real` is a signal representing current state of the node
+- `.real.output()` can be either of status `ReqSatate_Status.(Fulfilled|Empty|Pending)`
+- `.optimistic` is a family of signals, each representing a pending optimistic update
+- `.statics` is a data, that is stable from init. Usually you would want to put Primary Key here
+- `.meta` is some additional metadata information
+- `RemView` - real state and optimistic updates are stored separately, `RemView` merges them
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+
+// defenition of RemNode
+interface Def extends asc.RemNode_Def {
+    // content of the row
     data: {
         id: string
         name: string
-        amount: number
-        // references to other nodes, will talk about it later
-        param: string
-        params: string[]
+        value: number
     }
 
-    // available always, never change
     statics: {
         id: string
     }
 }
 
-// define family for nodes
-const item_family = atomfamily_new({
-    key: (id: string) => id,
+const store = asc.store_new()
 
-    get: (id: string) => atomremnode_new<ItemDef>({
-        statics: () => ({ id }),
+const atom_remnode = asc.remnode_atom<Def>(() => ({
+    // initial value of data
+    // when null, will be initialised with empty state
+    init: null,
 
-        init: () => {
-            // example of cache restoration, optional
-            const data = localStorage.getItem(`node:${id}`)
+    statics: {
+        id: "0"
+    },
 
-            if (data) {
-                return JSON.parse(data) satisfies ItemDef["data"]
-            }
+    meta: {
+        // which clonning mechanism should be used
+        // by default does a shallow clone, you can use immer or deep clone for more advanced cases
+        cloner: (data, cb) => {
+            const cpy = { ...data }
 
-            return null
+            cb(cpy)
+
+            return cpy
         },
-    })
+    },
+}))
+
+const remnode = store.reg(atom_remnode)
+const remview = asc.remview_new_node(remnode)
+
+// null
+console.log(remview.output().data)
+
+// normally you would request that from server
+// for that demonstration the process is cut
+remnode.real.input(asc.reqstate_new_fulfilled({
+    id: "0",
+    value: 100,
+    name: "item",
+}))
+
+// { id: "0", value: 100, name: "item" }
+console.log(remview.output().data)
+
+// normally you will not use this directly
+remnode.optimistic.reg("main").input({
+    kind: "push-schedule",
+
+    patch_new: () => ({
+        data: {
+            value: 150
+        },
+        applicator: Object.assign,
+    }),
+
+    request_new: () => {
+        return {
+            promise: Promise.resolve()
+        }
+    },
 })
 
-// {
-//     statics: statics of node
-//     real: remstate of current data
-//     optimistic: family of optimistic updates
-// }
-console.log(store.reg(item_family).reg(""))
+// { id: "0", value: 150, name: "item" }
+console.log(remview.output().data)
+```
 
-// to actually use it - resolve it
-const item_data = atomremnode_data({ remnode: ({ reg }) => reg(item_family).reg("") })
+### Request and Patch actions
 
-// {
-//     status: ReqState__Status - status of data - Empty, Pending, Fulfilled
-//     data: ItemDef["data"] | null - Empty can only have null data, Fulfilled can only have filled data, Pending could have either
-//
-//     meta: {
-//         source: "direct" | "optimistic" | "fallback" - Kind of data - when no optimistic or fallback provided is "direct" source
-//     }
-// }
-console.log(store.reg(item_data).output())
+- Library provides a set of optimistic and pessimistic requests
+- Optimistic requests know what node are they done for, pessimistic - do not
+- Example of an optimistic request is a PATCH request to a specific node
+- Example of a pessimistic request is a GET request that returns a list of items you know nothing about
 
-// to join multiple tables use join function set
-// create different table
-type Param_Def = {
-    request_meta: any
-    request_result: any
+### Optimistic Request action
+
+- Request action applied to node will set its state to Pending
+- It supports fallbacks and optimistic state when you can assume the output
+- It is supposed to be used for GET action when you do not know which content you will recieve, but know for which element request is done
+- Or POST or PUT action, where you could assume optimistic value, but it is still Pending as it is not registered in the server
+- Or DELETE action, where you can assume optimistic value is Empty, but you would still wait for server to respond
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+
+interface Def extends asc.RemNode_Def {
+    // additional data passed on request by user
+    // unlike optimistic data, does not need to match the interface of the Def["data"]
+    request_meta: null | {
+        time: number
+    }
+
+    data: {
+        id: string
+        name: string
+        value: number
+    }
 
     statics: {
         id: string
     }
-
-    data: {
-        id: string
-        formula: string
-    }
 }
 
-const param_family = atomfamily_new({
-    key: (id: string) => id,
+const store = asc.store_new()
 
-    get: (id: string) => atomremnode_new<Param_Def>({
-        init: () => null,
-        statics: () => ({ id }),
-    })
-})
-
-// join
-const itemjoin = atomremnode_join_root({
-    link: atomfamily_sel_childlink(item_family),
-
-    properties: {
-        // resolve singular property
-        param: atomremnode_join_prop({
-            source: atomremnode_join_root({
-                properties: {},
-                link: atomfamily_sel_childlink(param_family),
-            })
-        }),
-
-        // resolve array
-        params: atomremnode_join_array({
-            source: atomremnode_join_root({
-                properties: {},
-                link: atomfamily_sel_childlink(param_family),
-            })
-        })
-    }
-})
-
-// resolve.
-const joined = store.reg(itemjoin)("item_id").output()
-
-// top level output is nullish - should check
-if (joined) {
-    // properties are replaced by nodes they refered to
-    console.log(joined.data?.param.data?.formula)
-    console.log(joined.data?.params.map(param => param.data?.formula))
-
-    // properties are memorised by default so only thigs that actually changed are changing on update
+const data_1 = {
+    id: "0",
+    value: 100,
+    name: "item",
 }
 
-// actions are generalised interactions with nodes
+const data_2 = {
+    id: "0",
+    value: 200,
+    name: "item:real",
+}
 
-// patch action applies optimistic state and sends request of patch when node is ready (fulfilled)
-// aborts if node is empty and inactive (not pending)
-// if no optimistic update needed - data can be left to {}
-// typescript can not infer types there so you write generics by hand <NodeDef, ?PromiseResult>
-atomremnode_action_patch<ItemDef, string>({
-    // target node
-    node: atomfamily_sel_child({ family: item_family, index: "itemid" }),
-    // patch name, patches with same names may be merged depending on config
-    name: "patch",
+const atom_remnode = asc.remnode_atom<Def>(() => ({
+    init: data_1,
 
-    data: {
-        // in real case scenario patch that increasis amount by 1
-        // would resolve node (it includes optimistic updates) and get amount from it and increase it
-        amount: 5
-    } as const,
-
-    config: {
-        // merge if some data already provided
-        // new properties will override previous one
-        merge: true,
-
-        // delay before sending, useful for high intensity updates like description change
-        delay: 1500,
-    },
-
-    // make request
-    // api includes .data which is merged optimistic data and .real which is real data without optimistic updates
-    request: api => ({
-        // abort request
-        promise_abort: () => { },
-
-        // promise for request you are making with this update
-        promise: Promise.resolve("qwerty"),
-
-        // attach you own events
-        promise_after: promise => {
-            promise.then(console.log.bind("afterpromise"))
-        },
-
-        // interpret result
-        promise_interpret: result => {
-            if (result === "success") {
-                return api.data
-            }
-
-            return null
-        }
-    }),
-})
-
-// request action used for get and post requests
-// applies optimistic state if provided, fallback if allowed
-// typescript can not infer types there so you write generics by hand <NodeDef, ?PromiseResult, ?PromiseMeta>
-atomremnode_action_request<ItemDef, string>({
-    // nullish
-    optimistic: {
-        // optimistic target
-        node: atomfamily_sel_child({ family: item_family, index: "itemid" }),
-
-        // nullish
-        data: {
-            id: "itemid",
-            name: "newitem",
-            amount: 0,
-            param: "param",
-            params: []
-        },
-    },
-
-    request: () => ({
-        // meta for request
-        meta: {},
-
-        // abort promise
-        promise_abort: () => { },
-        // request promise
-        promise: Promise.resolve("itemid"),
-
-        // attach your events
-        promise_after: promise => {
-            promise.then(console.log.bind("requested"))
-        },
-
-        // you might now know what will be index when posting so target node is defined after interpretation is optimistic is not provided
-        // nullish, will throw if neither optimistic nor real target provided
-        promise_target: data => {
-            return atomfamily_sel_child({ family: item_family, index: data.id })
-        },
-
-        // interpret promise
-        promise_interpret: (result, meta) => {
-            if (result === "success") {
-                return {
-                    id: "itemid",
-                    name: "newitem",
-                    amount: 0,
-                    param: "param",
-                    params: []
-                }
-            }
-
-            return null
-        }
-    }),
-
-    config: {
-        // if node is already filled then it will be saved and applied if failure
-        fallback: false,
+    statics: {
+        id: "0"
     }
-})
+}))
 
-// both patch and request have _set variant that listen to existing request instead of creating new one
-// useful when you have batch requests such as api_patchall() that will affect multiple nodes
-atomremnode_action_request_set<ItemDef, string>({
+const remnode = store.reg(atom_remnode)
+const remview = asc.remview_new_node(remnode)
+
+// data_1
+console.log(remview.output().data)
+
+// sadly need to pass Def and PromiseResult manually
+asc.act_remopt_request<Def, Def["data"]>({
+    target: remnode,
+
+    // optional, does not keep fallback by default
+    fallback: {
+        value: true,
+        // if fallback should be used as data in remview when no optimistic value available
+        status_view: false,
+    },
+
+    // optional
+    config: {
+        // you can pass more RemNode here, request will only be executed when all of them are Fulfilled
+        deps: [],
+        // use it to control the execution of request
+        signal_abort: undefined,
+    },
+
+    // optional, assumed return value, will be used as data in remview
     optimistic: {
-        node: atomfamily_sel_child({ family: item_family, index: "itemid" }),
-
-        data: {
-            id: "itemid",
-            name: "newitem",
-            amount: 0,
-            param: "param",
-            params: []
-        },
+        value: data_2,
     },
 
     request: {
-        meta: {},
-        promise: Promise.resolve("itemid"),
-        promise_abort: () => { },
-
-        promise_target: data => {
-            return atomfamily_sel_child({ family: item_family, index: data.id })
+        meta: {
+            time: Date.now(),
         },
 
-        promise_interpret: (result, meta) => {
-            if (result === "success") {
-                return {
-                    id: "itemid",
-                    name: "newitem",
-                    amount: 0,
-                    param: "param",
-                    params: []
-                }
-            }
+        // you can use signal_abort to handle when request gets aborted for some reason
+        init: ({ signal_abort }) => {
+            return new Promise<Def["data"]>(res => {
+                setTimeout(() => res(data_2), 50)
+            })
+        },
 
-            return null
+        interpret: resapi => {
+            return {
+                kind: "success",
+
+                reqstate: asc.reqstate_new_fulfilled(resapi.result)
+            }
+        },
+
+        hook_after: promise => {
+            // you can add some listeners to promise after its created
+        },
+    },
+})
+
+{
+    const remview_out = remview.output()
+    // data_2 is used as optimistic value
+    console.log(remview_out.data)
+    // true
+    if (remview_out.status === asc.ReqState_Status.Pending) {
+        console.log("pending")
+        // { time: number }
+        console.log(remview_out.meta.request)
+        // "optimistic"
+        console.log(remview_out.meta.source)
+    }
+}
+
+setTimeout(() => {
+    // request is resolved
+    const remview_out = remview.output()
+    // data_2 is used as fulfilled value
+    console.log(remview_out.data)
+    // true
+    console.log(remview_out.status === asc.ReqState_Status.Fulfilled)
+}, 100)
+```
+
+### _set variant
+
+- `act_remopt_request` controls when request will be called
+- For when you want to keep the control of when request is executed, you can use act_remopt_request_set variant
+- It is the same as previous one, but you pass the Promise instead of `.init` 
+
+```typescript
+asc.act_remopt_request_set({
+    // ...
+
+    request: {
+        promise: new Promise(),
+
+        // ...
+    },
+})
+```
+
+### Patch Optimistic action
+
+- Does not influence `.real` state until its done
+- Supports optimistic values
+- Registers update into `.optimistic` of remnode
+- Supports batching multiple patches into one and delaying execution
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+
+interface Def extends asc.RemNode_Def {
+    data: {
+        id: string
+        name: string
+        value: number
+    }
+
+    statics: {
+        id: string
+    }
+}
+
+const store = asc.store_new()
+
+const data_1 = {
+    id: "0",
+    value: 100,
+    name: "item",
+}
+
+const patch_1 = {
+    value: 150,
+}
+
+const patch_2 = {
+    name: "real:item"
+}
+
+const atom_remnode = asc.remnode_atom<Def>(() => ({
+    init: data_1,
+
+    statics: {
+        id: "0"
+    }
+}))
+
+const remnode = store.reg(atom_remnode)
+const remview = asc.remview_new_node(remnode)
+
+// data_1
+console.log(remview.output().data)
+
+asc.act_remopt_patch({
+    // name of the kind of request
+    // requests of the same name can be merged together
+    name: "main",
+    target: remnode,
+
+    config: {
+        deps: [],
+        // by default request will only be launched when target is Fulfilled
+        // to disable that behaviour - set deps_noself: true
+        deps_noself: false,
+        signal_abort: undefined,
+        // will delay the execution of request
+        // when new patch is called while one is scheduled, they will merge the data instead
+        // library also exports debouncers
+        callbatcher: asc.throttler_new_delay(50),
+
+        schedule_config: {
+            // ignore callbatcher
+            instant: false,
+            // do not wait for pending patches to finish
+            force: false,
+        },
+    },
+
+    optimistic: {
+        // flat means treating patch as a shallow object
+        // alternative methods are "deep" for deep merge
+        // "custom" for custom data unrelated to remnode's body
+        // "raw" for "low level" access to patch creation
+        // it is important to ensure, that patch of same name share compatible data
+        // otherwise, unexpected behaviour will occur and types will not notify you of it
+        kind: "flat",
+        merge: true,
+        patch: patch_1,
+    },
+
+    request: {
+        init: ({ signal_abort, patch }) => {
+            // patch_1
+            // in this example will not be called as this patch will be overriten
+            console.log(patch?.data)
+            // patch is resulting optimistic data after all merges
+            return new Promise<void>(res => {
+                setTimeout(() => res(), 50)
+            })
+        },
+
+        // reutrn new data
+        interpret: api => {
+            // api.data_patched returns real data with patch applied
+            // if the way you apply the patch is dependent on promise result, use api.result and api.data_real()
+            return api.data_patched()
+        },
+
+        hook_after: promise => {
+            // you can add some listeners to promise after its created
+        },
+    },
+})
+
+// { ...data_1, ...patch_1 }
+console.log(remview.output().data)
+
+asc.act_remopt_patch({
+    // same name, patches will be merged
+    name: "main",
+    target: remnode,
+
+    optimistic: {
+        kind: "flat",
+        merge: true,
+        patch: patch_2,
+    },
+
+    request: {
+        init: ({ signal_abort, patch }) => {
+            // { ...patch_1, ...patch_2 }
+            console.log(patch?.data)
+
+            return new Promise<void>(res => {
+                setTimeout(() => res(), 50)
+            })
+        },
+
+        interpret: api => {
+            return api.data_patched()
+        },
+    },
+})
+
+// { ...data_1, ...patch_1, ...patch_2 }
+console.log(remview.output().data)
+```
+
+### _set variant
+
+- Just like with `act_remopt_request`, `act_remopt_patch` has a `_set` variant
+
+```typescript
+asc.act_remopt_patch_set({
+    // ...
+
+    request: {
+        promise: new Promise(),
+
+        // ...
+    },
+})
+```
+
+### Pessimistic request actions
+
+- Each of `act_remopt_*` has its `act_rempes_*` variant
+- Unlike optimistic ones, pessimistic request actions do not support fallback and optimistic values
+- Their interface is similar, but in the end you return an array of `RemNode` that are to be modified
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+
+asc.act_rempes_patch({
+    config: {
+        // control execution
+        signal_abort: undefined,
+        deps: [],
+    },
+
+    request: {
+        // return an array of patches
+        interpret: api => {
+            return [
+                {
+                    target: remnode,
+
+                    patch: {
+                        // flat will make a shallow merge
+                        // alternatives are: "deep" for deep merge
+                        // or "raw", where you specify the resulting state
+                        kind: "flat",
+                        data: api.result,
+                    }
+                }
+            ]
+        },
+
+        init: () => {
+            return wait(20).then(() => patch_1)
+        },
+    }
+})
+
+asc.act_rempes_request({
+    config: {
+        deps: [],
+        signal_abort: undefined
+    },
+
+    request: {
+        init: () => {
+            return wait(20).then(() => data_1)
+        },
+
+        interpret: api => {
+            return [
+                {
+                    target: remnode,
+                    reqstate: asc.reqstate_new_fulfilled(api.result)
+                }
+            ]
+        },
+    }
+})
+```
+
+## Joins
+
+- Assume you have two rows `A` and `B`, where `A.b_id` references `B`
+- You will likely often need to have data from both rows
+- Joins solve that problem by providing interface to resolve relations between rows
+- join_new_remnode will usually be an entry point. It accepts remnode and nested joins
+- As an output you will have `{ core: RemView<Def>, joins: /* your joins */ }`
+- Every join has a `newf` variant that helps with automatic type inference
+- Most joins have a `news` variant that is an shortcut for calling `newf` with parameters object represented as multiple parameters
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+
+interface DefA extends asc.RemNode_Def {
+    statics: { id: string }
+
+    data: {
+        id: string
+        name: string
+        b_id: string
+    }
+}
+
+interface DefB extends asc.RemNode_Def {
+    statics: { id: string }
+
+    data: {
+        id: string
+        name: string
+        value: number
+    }
+}
+
+const store = asc.store_new()
+
+// define tables
+const table_a = store.reg(
+    asc.family_atom_hash(() => ({
+        key: (id: string) => id,
+
+        get: (id: string) => asc.remnode_atom<DefA>(() => ({
+            init: null,
+            statics: { id },
+        }))
+    }))
+)
+
+const table_b = store.reg(
+    asc.family_atom_hash(() => ({
+        key: (id: string) => id,
+
+        get: (id: string) => asc.remnode_atom<DefB>(() => ({
+            init: null,
+            statics: { id },
+        }))
+    }))
+)
+
+table_a.reg("a:0").real.input(asc.reqstate_new_fulfilled({
+    id: "a:0",
+    b_id: "b:0",
+    name: "name_a",
+}))
+
+table_b.reg("b:0").real.input(asc.reqstate_new_fulfilled({
+    id: "b:0",
+    value: 100,
+    name: "name_b",
+}))
+
+// types for joins are defined like that
+type JoinB = asc.Join_RemNode<DefB, {}>
+
+type JoinA = asc.Join_RemNode<DefA, {
+    b: NonNullable<JoinB["data"]>
+}>
+
+// types will be correctly inferred, so explicit typing is not needed
+// but having it improves display of the type, so it is recomended
+const join: asc.Join<string, JoinA> = asc.join_new_remnode({
+    link_new: (id: string) => table_a.reg(id),
+
+    joins: {
+        // pipeo_expdata is used to extract data instead of serving the whole view
+        // pipeo_expdata also insures data is not required (if data is null, it will nullify the whole object)
+        // when data is not required, use pipeo_data
+        b: asc.join_news_pipeo_expdata(
+            asc.join_news_pipei_data(
+                data => data.b_id,
+
+                asc.join_new_remnode({
+                    link_new: (id: string) => table_b.reg(id),
+                    joins: {},
+                } as const),
+            )
+        )
+    } as const,
+} as const)
+
+// returns Join_Option, which is basically Maybe<T> type
+// it is not very convenient to work with it that way, so there is join_root_normalize utility
+const join_root = join.root("a:0")
+
+if (join_root.kind === asc.Join_Option_Kind.View) {
+    const output = join_root.value.output()
+
+    if (output.kind === asc.Join_Option_Kind.View) {
+        const data = output.value.data
+
+        // in this case data is guaranteed to be non-nullish
+        if (!data) { throw new Error(`data is expected to be non nullish`) }
+
+        // name_a has name_b of value 100
+        console.log(`${data.core.name} has ${data.joins.b.core.name} of value ${data.joins.b.core.value}`)
+    }
+}
+
+// null | OSignal<JoinB | null>
+const join_nroot = asc.join_root_normalize(join_root)
+
+// { core: DefA["data"], joins: { b: { core: DefB["data"], joins {} } } }
+const data = join_nroot?.output()?.data
+
+// in this case data is guaranteed to be non-nullish
+if (!data) { throw new Error(`data is expected to be non nullish`) }
+
+// name_a has name_b of value 100
+console.log(`${data.core.name} has ${data.joins.b.core.name} of value ${data.joins.b.core.value}`)
+```
+
+### Joins variants
+
+- `join_new_remnode` joins `RemNode` with `.joins`, divides `.joins` and `.core` data
+- `join_new_remnode_full` same as `join_new_remnode`, but expects `.data` to be non-null
+- `join_new_remnode_merge` joins `RemNode` with `.joins`, merges them together (`.joins` override `.core`)
+- `join_new_remnode_merge_full` same as `join_new_remnode_merge`, but expects `.data` to be non-null
+- `join_new_remdata` same as `join_new_remnode`, but extracts `.data`
+- `join_new_remdata_merge` same as `join_new_remnode_merge`, but extracts `.data` 
+- `join_new_remdata_full` same as `join_new_remdata`, but expects `.data` to be non-null
+- `join_new_remdata_merge_full` same as `join_new_remdata_merge`, but expects `.data` to be non-null 
+- `join_new_list` allows joining a list from an `Iterable` property
+- `join_new_list_flat` allow joining a list for an `OSignal<Iterable>` property
+- `join_new_pipei_data` allows to pipe .data property of the root into parameter for child
+- `join_new_pipei` is more general version that is pipes from root's value directly
+- `join_new_pipeo` pipes output of child
+- `join_new_pipeo_data` extracts .data property of child
+- `join_new_pipeo_expdata` extract .data proprty of child expecting it to be non-nullish
+- `join_new_filteri` filters inputs coming from root
+- `join_new_filtero` filters outputs coming from child
+- `join_new_filtero_withdata` filters outputs where `.data` is non-nullish
+- `join_new_fallbacko` provides fallback output for child when output is `None`
+- `join_new_fallbacki` provides fallback input for child when it is `None`
+
+### Automatic inference of types in join_* functions
+
+- It is rather tricky, just play around with `new_*`, `newf_*` variants and `as const` for parameters object
+
+## Indexers simplify emulating many-to-one relations
+
+- After configuring and connecting an `Indexer` it will watch for changes in the table
+- Then you use `.filter([null, Filter])` to get an `OSignal<Iterable>` of elements that match the query
+- After that you can use it individually or with `join_new_list_flat` to join relations
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+
+interface DefA extends asc.RemNode_Def {
+    statics: { id: string }
+
+    data: {
+        id: string
+        name: string
+    }
+}
+
+interface DefB extends asc.RemNode_Def {
+    statics: { id: string }
+
+    data: {
+        id: string
+        name: string
+        value: number
+        a_id: string
+    }
+}
+
+const store = asc.store_new()
+
+const table_a = store.reg(
+    asc.family_atom_hash(() => ({
+        key: (id: string) => id,
+
+        get: (id: string) => asc.remnode_atom<DefA>(() => ({
+            init: null,
+            statics: { id },
+        }))
+    }))
+)
+
+const table_b = store.reg(
+    asc.family_atom_hash(() => ({
+        key: (id: string) => id,
+
+        get: (id: string) => asc.remnode_atom<DefB>(() => ({
+            init: null,
+            statics: { id },
+        }))
+    }))
+)
+
+table_a.reg("a:0").real.input(asc.reqstate_new_fulfilled({
+    id: "a:0",
+    name: "name_a",
+}))
+
+table_b.reg("b:0").real.input(asc.reqstate_new_fulfilled({
+    id: "b:0",
+    a_id: "a:0",
+    value: 100,
+    name: "name_b:0",
+}))
+
+table_b.reg("b:1").real.input(asc.reqstate_new_fulfilled({
+    id: "b:1",
+    a_id: "a:0",
+    value: 200,
+    name: "name_b:1",
+}))
+
+// indexers can be used standalone
+// but defining them in a family simplifies api-access
+// family does:
+// 1. Creates Indexer
+// 2. Connects Indexer
+// 3. Calls indexer.filter([null, Filter]) on .reg and memorises it
+const indexer_fam = store.reg(
+    asc.family_atom_indexer(() => ({
+        // will use JSON.stringify by default
+        key: filter => filter.a_id,
+
+        indexer_new: () => {
+            return asc.indexer_new_wrap({
+                data_new: (in_data: asc.RemView<DefB>) => {
+                    if (in_data.data === null) {
+                        // not indexed
+                        return null
+                    }
+
+                    // .value goes to the indexer
+                    return {
+                        value: [in_data.data.a_id] as const
+                    }
+                },
+
+                filter_new: (in_filter: { readonly a_id: string }) => {
+                    // goes to the indexer
+                    return [in_filter.a_id] as const
+                },
+
+                indexer: asc.indexer_new_pipe_head({
+                    right_newf: asc.indexer_newf_list_pure<asc.RemNode<DefB>>(),
+
+                    steps: [
+                        // you define an indexer for each field/cluster
+                        // you need to manually specify NodeType and DataType for them
+                        asc.indexer_newl_identity<asc.RemNode<DefB>, string>(),
+                    ] as const,
+                }),
+            })
+        },
+
+        indexer_connect: indexer => asc.indexer_connect_family_remnode({
+            indexer,
+            src: table_b,
+            view_new: asc.remview_new_node,
+            // to batch changes in the family
+            callbatcher: asc.throttler_new_immediate(),
+        }),
+    }))
+)
+
+type JoinB = asc.Join_RemNode<DefB, {}>
+
+type JoinA = asc.Join_RemNode<DefA, {
+    b: NonNullable<JoinB["data"]>[]
+}>
+
+const join: asc.Join<string, JoinA> = asc.join_new_remnode({
+    link_new: (id: string) => table_a.reg(id),
+
+    joins: {
+        b: asc.join_newf_pipei_data({
+            // transform data of the root to an indexer
+            transformer: data => indexer_fam.reg({ a_id: data.id }),
+
+            // pipe it to the listflat
+            join: asc.join_news_listflat(asc.join_news_pipeo_expdata(
+                asc.join_newf_pipei({
+                    transformer: param => param.statics.id,
+
+                    join: asc.join_new_remnode({
+                        link_new: (id: string) => table_b.reg(id),
+
+                        joins: {} as const,
+                    })
+                })
+            )),
+        } as const)
+    } as const,
+})
+
+// null | OSignal<JoinA | null>
+const join_nroot = asc.join_root_normalize(join.root("a:0"))
+
+// will have two children
+console.log(join_nroot?.output()?.data)
+
+// add one more related B
+table_b.reg("b:2").real.input(asc.reqstate_new_fulfilled({
+    id: "b:2",
+    a_id: "a:0",
+    value: 200,
+    name: "name_b:3",
+}))
+
+// will have three children
+console.log(join_nroot?.output()?.data)
+```
+
+### Terminology Kinds of Indexers
+
+- `Indexer` - stateful, allows inputs and outputs
+- `IdxRouter` - link between two indexers. If you have `idx_a` piping information to `idx_b`, it does it through router
+- `IdxRouter` - is compatible with `Indexer` when `Indexer` accepts no parameters. `indexer_new_list_pure` can be used as router
+- `IndexerF` - a function with no parameters that returns `Indexer`
+- `IndexerL` - a function with `IdxRouterF` parameter that return `Indexer` connected to given router
+- Most of `indexer_new` function have `indexer_newf` and `indexer_newl` variants for convenience
+
+- field-indexers:
+    - `indexer_new_identity` - general purpose `Object.is()` indexer uses `Map`
+    - `indexer_new_boolean` - indexer for booleans
+    - `indexer_new_switch` - indexer for small integers, uses direct-access table
+- meta-indexers:
+    - `indexer_new_optional` - makes field optional
+    - `indexer_new_logic` - allows using logic gates
+- collectors:
+    - `indexer_new_list_pure` - collects nodes out-of-order
+    - `indexer_new_list_sorted` - collects nodes in-order
+- utility
+    - `indexer_new_pair` - connects left indexer to right one
+    - `indexer_new_pair_head` - connects left indexer to right one assuming right does not take parameters
+    - `indexer_new_pipe` - makes a chain of indexers
+    - `indexer_new_pipe_head` - makes a chain of indexers assuming right one does not take parameters
+    - `indexer_new_wrap` - transformer for incoming `Data` and `Filter`
+    - `indexer_new_wrapi` - transformer for incoming `Data`
+    - `indexer_new_wrapo` - transformer for incoming `Filter`
+    - `indexer_new_wrapi_strip` - transformer for incoming `Data`, returns `IdxInput` (writeonly `Indexer`)
+    - `indexer_new_wrapo_strip` - transformer for incoming `Filter`, returns `IdxOutput` (readonly `Indexer`)
+
+## Loading Data globally
+
+- `Loader` is used for loading data globally
+- It exposes `.request` function. It counts all requests from the app and creates a connection when needed
+- Connections for each loader are managed in a centralised way
+- `loader_new_pure` accepts no parameters on `.request`
+- `loader_new_concurrent` accepts a parameter and only creates a connections with the most important one (defined by `Comparator`)
+
+### Using `Loader` to load paginated data
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+import * as sc from "@qyu/signal-core"
+
+interface RemDef extends asc.RemNode_Def {
+    data: {
+        id: number
+        value: number
+    }
+
+    statics: {
+        id: number
+    }
+}
+
+const items: RemDef["data"][] = Array.from({ length: 30 }, (_, i) => {
+    return {
+        id: i,
+        value: Math.random(),
+    }
+})
+
+const store = asc.store_new()
+
+const atom_remfam = asc.family_atom_hash(() => {
+    return {
+        key: (id: number) => id.toString(),
+
+        get: (id: number) => asc.remnode_atom<RemDef>(() => ({
+            init: null,
+
+            statics: {
+                id
+            },
+        }))
+    }
+})
+
+const atom_idxfam = asc.atom_flat(({ reg }) => asc.family_atom_indexer(() => {
+    return {
+        key: param => param && param.toString(),
+
+        indexer_new: asc.indexer_newf_wrap({
+            indexer: asc.indexer_new_list_sorted<asc.RemNode<RemDef>, number>({
+                comparator: (a, b) => a - b,
+            }),
+
+            data_new: (in_data: asc.RemView<RemDef>) => {
+                if (in_data.data) {
+                    return { value: in_data.data.id }
+                }
+
+                return null
+            },
+
+            filter_new: (in_filter: number | null) => {
+                return {
+                    bound_end: typeof in_filter === "number" ? {
+                        inclusive: true,
+                        value: in_filter,
+                    } : null,
+                }
+            },
+        }),
+
+        indexer_connect: indexer => {
+            return asc.indexer_connect_family_remnode({
+                indexer,
+                src: reg(atom_remfam),
+                view_new: asc.remview_new_node,
+                // using microtask throttler to prevent execution every time an item is added
+                callbatcher: asc.throttler_new_microtask(),
+            })
+        },
+    }
+}))
+
+// you can use family for requests that invole search parameters
+const atom_cursor = asc.state_atom<null | { value: number | null }>(() => ({ value: null }))
+
+type ApiRes = {
+    readonly items: RemDef["data"][]
+    readonly status_finished: boolean
+}
+
+const api_get = async function(cursor: number | null): Promise<ApiRes> {
+    await new Promise(resolve => setTimeout(resolve, 1e3))
+
+    if (cursor === null) {
+        const items_slice = items.slice(0, 10)
+
+        return {
+            items: items_slice,
+            status_finished: items_slice.length === items.length,
+        }
+    } else {
+        const items_filtered = items.filter(item => item.id > cursor)
+        const items_slice = items_filtered.slice(0, 10)
+
+        return {
+            items: items_slice,
+            status_finished: items_slice.length === items_filtered.length,
+        }
+    }
+}
+
+// you can use family for request with search parameters
+const atom_loader = asc.loader_atom_pure(({ reg }) => ({
+    callbatcher: asc.throttler_new_microtask(),
+
+    connect: () => {
+        const remfam = reg(atom_remfam)
+        const cursor_s = reg(atom_cursor)
+
+        const query = asc.query_new_pure({
+            status_finished: cursor_s.output() === null,
+
+            request_new: async (api) => {
+                const result = await api_get(cursor_s.output()!.value)
+
+                if (api.signal_abort.aborted) { return false }
+
+                for (const item of result.items) {
+                    // register an item to the family
+                    remfam.reg(item.id).real.input(
+                        asc.reqstate_new_fulfilled(item)
+                    )
+                }
+
+                if (result.status_finished) {
+                    cursor_s.input(null)
+
+                    return true
+                } else {
+                    cursor_s.input({ value: result.items.at(-1)!.id })
+
+                    return false
+                }
+            },
+        })
+
+        const query_sub = () => {
+            const query_status_o = query.status.output()
+
+            if (query_status_o === asc.Query_Status.Idle) {
+                query.load()
+            }
+        }
+
+        query.status.addsub(query_sub)
+
+        query_sub()
+
+        return () => {
+            query.status.rmsub(query_sub)
+            query.clear()
+        }
+    },
+}))
+
+const idxfam = store.reg(atom_idxfam)
+const loader = store.reg(atom_loader)
+
+// you would theoretically request it from a list when it is scrolled to bottom
+loader.request()
+
+const list = sc.osignal_new_pipeflat(
+    store.reg(atom_cursor),
+    // need to bound it to prevent islands to leak into sequence
+    cursor => {
+        // when cursor is { value: null } meaning not yet initialised - use -Infinity to get empty array
+        // when cursor is { value: number } meaning it is ongoing - use .value as a limit
+        // when cursor is null meaning pagination is finished - use no limit
+        return idxfam.reg(
+            cursor === null ? null : cursor.value ?? Number.NEGATIVE_INFINITY
+        )
+    }
+)
+
+list.addsub(() => {
+    console.log([...list.output()].map(item => asc.remview_new_node(item).output().data))
+})
+```
+
+## Loading data Locally
+
+- `query_new_pure` and `paginator_new_pure` do not provide much functionality
+- They just act as an interface for calling remote request
+- They expose `.status` `.load()` and `.clear()` properties
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+
+const query = asc.query_new_pure({
+    status_finished: false,
+
+    config: {
+        retry: {
+            delay: 10,
         }
     },
 
-    config: {
-        fallback: false,
-    }
+    request_new: api => {
+        return Promise.resolve().then(() => {
+            if (!api.signal_abort.aborted) {
+                // ... do effect
+
+                return false
+            }
+
+            return true
+        })
+    },
 })
+
+console.log(query.status.output())
+
+query.load()
+
+console.log(query.status.output())
+
+query.clear()
+
+console.log(query.status.output())
+```
+
+```typescript
+import * as asc from "@qyu/atom-state-core"
+
+let id = 0
+
+const paginator = asc.paginator_new_pure<number>({
+    init: {
+        cursor: id >= 100 ? null : {
+            value: id,
+        },
+    },
+
+    config: {
+        retry: {
+            delay: 10,
+        }
+    },
+
+    request_new: api => {
+        return Promise.resolve().then(() => {
+            if (!api.signal_abort.aborted) {
+                // ... do effect
+            }
+
+            if (id >= 100) {
+                return {
+                    cursor: null
+                }
+            }
+
+            return {
+                cursor: { value: id += 10 }
+            }
+        })
+    },
+})
+
+console.log(paginator.status.output())
+
+paginator.load()
+
+console.log(paginator.status.output())
+
+paginator.clear()
+
+console.log(paginator.status.output())
 ```

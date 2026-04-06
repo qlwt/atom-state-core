@@ -1,18 +1,16 @@
 import { remnode_new } from "#src/remnode/new/index.js"
-import type { AtomRemNode, AtomRemNode_Def } from "#src/remnode/type/State.js"
-import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js"
-import { atomvalue_new } from "#src/value/atom/index.js"
+import type { RemNode_Atom, RemNode_Def, RemNode_Meta } from "#src/remnode/type/def.js"
+import type { SelectorStatic_Atom } from "#src/selector/type/selector.js"
+import { value_atom } from "#src/value/atom/index.js"
 
-export type AtomRemNode_New_Params<Def extends AtomRemNode_Def> = {
-    readonly statics: AtomSelectorStatic<Def["statics"]>
-    readonly init: AtomSelectorStatic<Def["data"] | null>
+export type RemNode_Atom_Params<Def extends RemNode_Def> = {
+    readonly statics: Def["statics"]
+    readonly init: Def["data"] | null
+    readonly meta?: RemNode_Meta<Def>
 }
 
-export const atomremnode_new = function <Def extends AtomRemNode_Def>(params: AtomRemNode_New_Params<Def>): AtomRemNode<Def> {
-    return atomvalue_new(({ reg }) => {
-        return remnode_new({
-            init: reg(params.init),
-            statics: reg(params.statics),
-        })
+export const remnode_atom = function <Def extends RemNode_Def>(params: SelectorStatic_Atom<RemNode_Atom_Params<Def>>): RemNode_Atom<Def> {
+    return value_atom(({ reg }) => {
+        return remnode_new(reg(params))
     })
 }

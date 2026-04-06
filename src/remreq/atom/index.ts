@@ -1,9 +1,9 @@
 import { remreq_new } from "#src/remreq/new/index.js"
-import type { AtomRemReq } from "#src/remreq/type/State.js"
-import { atomvalue_new } from "#src/value/atom/index.js"
+import type { RemReq_Atom } from "#src/remreq/type/state.js"
+import { value_atom } from "#src/value/atom/index.js"
 
-export const atomremreq_new = function <Data>(): AtomRemReq<Data> {
-    return atomvalue_new(() => {
+export const remreq_atom = function <Data>(): RemReq_Atom<Data> {
+    return value_atom(() => {
         return remreq_new()
     })
 }

@@ -1,10 +1,5 @@
-import type { AtomLoader_Value } from "#src/loader/type/AtomLoader.js";
-import type { Throttler } from "#src/throttler/type/Throttler.js";
-
-export type Loader_New_Pure_Params = {
-    readonly throttler: Throttler
-    readonly connect: () => VoidFunction
-}
+import type { Loader } from "#src/loader/type/loader.js";
+import type { CallBatcher } from "#src/util/callbatcher/type/batcher.js";
 
 enum Status {
     Idle = "Idle",
@@ -24,16 +19,19 @@ type State = (
     | {
         readonly status: Status.TerminationScheduled
         readonly connection_terminate: VoidFunction
-        readonly operation_cancel: VoidFunction
     }
     | {
         readonly status: Status.InitializationScheduled
-        readonly operation_cancel: VoidFunction
     }
 )
 
-export const loader_new_pure = function(params: Loader_New_Pure_Params): AtomLoader_Value<[]> {
-    const { throttler, connect } = params
+export type Loader_NewPure_Params = {
+    readonly callbatcher: CallBatcher
+    readonly connect: () => VoidFunction
+}
+
+export const loader_new_pure = function(params: Loader_NewPure_Params): Loader<void> {
+    const { callbatcher, connect } = params
 
     let counter = 0
     let state: State = { status: Status.Idle }
@@ -49,29 +47,27 @@ export const loader_new_pure = function(params: Loader_New_Pure_Params): AtomLoa
             if (counter === 1) {
                 switch (state.status) {
                     case Status.Idle: {
-                        const throttler_controls = throttler(() => {
+
+                        state = {
+                            status: Status.InitializationScheduled,
+                        }
+
+                        callbatcher.emit(() => {
                             state = {
                                 status: Status.Connected,
                                 connection_terminate: connect()
                             }
                         })
 
-                        state = {
-                            status: Status.InitializationScheduled,
-                            operation_cancel: throttler_controls.interrupt
-                        }
-
-                        throttler_controls.emit()
-
                         break
                     }
                     case Status.TerminationScheduled: {
-                        state.operation_cancel()
-
                         state = {
                             status: Status.Connected,
                             connection_terminate: state.connection_terminate
                         }
+
+                        callbatcher.interrupt()
 
                         break
                     }
@@ -88,7 +84,12 @@ export const loader_new_pure = function(params: Loader_New_Pure_Params): AtomLoa
                             case Status.Connected: {
                                 const { connection_terminate } = state
 
-                                const throttler_controls = throttler(() => {
+                                state = {
+                                    status: Status.TerminationScheduled,
+                                    connection_terminate,
+                                }
+
+                                callbatcher.emit(() => {
                                     connection_terminate()
 
                                     state = {
@@ -96,18 +97,10 @@ export const loader_new_pure = function(params: Loader_New_Pure_Params): AtomLoa
                                     }
                                 })
 
-                                state = {
-                                    status: Status.TerminationScheduled,
-                                    connection_terminate,
-                                    operation_cancel: throttler_controls.interrupt,
-                                }
-
-                                throttler_controls.emit()
-
                                 break
                             }
                             case Status.InitializationScheduled: {
-                                state.operation_cancel()
+                                callbatcher.interrupt()
 
                                 state = { status: Status.Idle }
 

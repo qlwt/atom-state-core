@@ -1,12 +1,12 @@
-import { atomremstate_new } from "#src/remstate/atom/index.js";
-import { atomstore_new } from "#src/store/new/index.js";
+import { remstate_atom } from "#src/remstate/atom/index.js";
 import { reqstate_new_empty } from "#src/reqstate/new/empty.js";
 import { reqstate_new_fulfilled } from "#src/reqstate/new/fulfilled.js";
 import { reqstate_new_pending } from "#src/reqstate/new/pending.js";
-import { ReqState__Status, type ReqState } from "#src/reqstate/type/State.js";
+import { ReqState_Status, type ReqState } from "#src/reqstate/type/state.js";
+import { store_new } from "#src/store/new/index.js";
 import { expect, test } from "vitest";
 
-const atomremote = atomremstate_new<string, ReqState<string>, any>(() => reqstate_new_empty())
+const atomremote = remstate_atom<string, ReqState<string>, any>(() => reqstate_new_empty({ error: null }))
 
 const delay = (time: number, next: ReqState<string>) => {
     return new Promise<ReqState<string>>(resolve => {
@@ -17,7 +17,7 @@ const delay = (time: number, next: ReqState<string>) => {
 }
 
 test("remote", async () => {
-    const store = atomstore_new()
+    const store = store_new()
     const remote = store.reg(atomremote)
 
     const aborts = new Array<string>()
@@ -35,7 +35,9 @@ test("remote", async () => {
         fallback: null,
     }))
 
-    remote.input(reqstate_new_pending({
+    remote.input({
+        status: ReqState_Status.Pending,
+
         request_abort: () => { aborts.push("1") },
         request_promise: promise1,
         request_interpret: result => result,
@@ -43,10 +45,12 @@ test("remote", async () => {
         optimistic: null,
         meta: null,
         fallback: null,
-    }))
+    })
 
     // should interrupt previous promise
-    remote.input(reqstate_new_pending({
+    remote.input({
+        status: ReqState_Status.Pending,
+
         request_abort: () => { aborts.push("2") },
         request_promise: promise2,
         request_interpret: result => result,
@@ -54,7 +58,7 @@ test("remote", async () => {
         optimistic: null,
         meta: null,
         fallback: null,
-    }))
+    })
 
     {
         await promise2
@@ -62,7 +66,9 @@ test("remote", async () => {
 
     expect(remote.output()).toEqual(reqstate_new_fulfilled("promise2"))
 
-    remote.input(reqstate_new_pending({
+    remote.input({
+        status: ReqState_Status.Pending,
+
         request_abort: () => { aborts.push("4") },
         request_promise: promise4,
         request_interpret: result => result,
@@ -70,13 +76,13 @@ test("remote", async () => {
         optimistic: null,
         meta: null,
         fallback: null,
-    }))
+    })
 
     {
         await promise4
     }
 
-    expect(remote.output().status).toBe(ReqState__Status.Pending)
+    expect(remote.output().status).toBe(ReqState_Status.Pending)
 
     {
         await promise3

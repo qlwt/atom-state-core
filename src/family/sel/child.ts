@@ -1,14 +1,14 @@
-import type { AtomFamily } from "#src/family/type/AtomFamily.js";
-import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js";
+import type { Family_Atom } from "#src/family/type/family.js";
+import type { SelectorStatic_Atom } from "#src/selector/type/selector.js";
 
-export type AtomFamily_Sel_Child_Params<I, V> = {
+export type Family_SelChild_Params<I, V> = {
     readonly index: I
-    readonly family: AtomFamily<I, V>
+    readonly family: Family_Atom<I, V>
 }
 
-export const atomfamily_sel_child = function <I, V>(
-    params: AtomFamily_Sel_Child_Params<I, V>
-): AtomSelectorStatic<V> {
+export const family_sel_child = function <I, V>(
+    params: Family_SelChild_Params<I, V>
+): SelectorStatic_Atom<V> {
     const { family, index } = params
 
     return ({ reg }) => {

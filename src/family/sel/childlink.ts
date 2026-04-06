@@ -1,7 +1,7 @@
-import type { AtomFamily } from "#src/family/type/AtomFamily.js"
-import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js"
+import type { Family_Atom } from "#src/family/type/family.js"
+import type { SelectorStatic_Atom } from "#src/selector/type/selector.js"
 
-export const atomfamily_sel_childlink = function <Index, V>(family: AtomFamily<Index, V>): AtomSelectorStatic<(index: Index) => V> {
+export const family_sel_childlink = function <Index, V>(family: Family_Atom<Index, V>): SelectorStatic_Atom<(index: Index) => V> {
     return ({ reg }) => {
         return index_raw => {
             const family_v = reg(family)

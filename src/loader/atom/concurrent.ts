@@ -1,23 +1,19 @@
-import type { AtomLoader } from "#src/loader/type/AtomLoader.js"
-import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js"
-import { atomvalue_new } from "#src/value/atom/index.js"
-import type { Throttler } from "#src/throttler/type/Throttler.js"
 import { loader_new_concurrent } from "#src/loader/new/concurrent.js"
+import type { Loader_Atom } from "#src/loader/type/loader.js"
+import type { SelectorStatic_Atom } from "#src/selector/type/selector.js"
+import type { CallBatcher } from "#src/util/callbatcher/type/batcher.js"
+import { value_atom } from "#src/value/atom/index.js"
 
-export type AtomLoader_New_Concurrent_Params<P extends readonly unknown[]> = {
-    readonly throttler: Throttler
-    readonly comparator: (a: P, b: P) => number
-    readonly connect: (...params: P) => AtomSelectorStatic<VoidFunction>
+export type Loader_AtomConcurrent_Params<Param> = {
+    readonly callbatcher: CallBatcher
+    readonly connect: (params: Param) => VoidFunction
+    readonly comparator: (a: Param, b: Param) => number
 }
 
-export const atomloader_new_concurrent = function <P extends readonly unknown[]>(
-    params: AtomLoader_New_Concurrent_Params<P>
-): AtomLoader<P> {
-    return atomvalue_new(store => {
-        return loader_new_concurrent({
-            throttler: params.throttler,
-            comparator: params.comparator,
-            connect: (...l_params) => params.connect(...l_params)(store)
-        })
+export const loader_atom_concurrent = function <Param>(
+    params: SelectorStatic_Atom<Loader_AtomConcurrent_Params<Param>>
+): Loader_Atom<Param> {
+    return value_atom(({ reg }) => {
+        return loader_new_concurrent(reg(params))
     })
 }

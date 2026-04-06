@@ -1,67 +1,109 @@
-import type { AtomStore, AtomStore_EntryChangeEvent } from "#src/store/type/AtomStore.js"
-import type { AtomValue } from "#src/value/type/AtomValue.js"
+import type { Store, Store_EntryChangeEvent } from "#src/store/type/store.js"
+import type { Value_ApiCache_Config, Value_Atom } from "#src/value/type/value.js"
 import * as sc from "@qyu/signal-core"
 
-export const atomstore_new = function(): AtomStore {
-    const map = new Map<AtomValue, unknown>()
-    const [mapchange_event, mapchange_event_fire] = sc.esignal_new_manual()
+type Node<T> = {
+    readonly value: T
+    readonly cleanup: VoidFunction | null
+}
 
-    const map_entries = sc.osignal_new_memo({
-        ...mapchange_event,
+type Events_Entries = {
+    readonly fire: VoidFunction
+    readonly signal: sc.OSignal<[Value_Atom, unknown][]>
+    readonly subs: Set<(action: Store_EntryChangeEvent<unknown>) => void>
+}
 
-        output: () => {
-            return [...map.entries()]
-        },
-    })
+const events_new_entries = function(map: Map<Value_Atom, Node<unknown>>): Events_Entries {
+    const [esignal, esignal_fire] = sc.esignal_new_manual()
 
-    const events_entry_change = new Array<(action: AtomStore_EntryChangeEvent) => void>()
+    return {
+        subs: new Set(),
+        fire: esignal_fire,
 
-    const store: AtomStore = {
+        signal: sc.osignal_new_memo({
+            ...esignal,
+
+            output: () => {
+                const result: [Value_Atom, unknown][] = []
+
+                for (const [k, node] of map.entries()) {
+                    result.push([k, node.value])
+                }
+
+                return result
+            },
+        }, null),
+    }
+}
+
+const events_fire_entries = function(events: Events_Entries, action: Store_EntryChangeEvent<unknown> | null) {
+    if (action) {
+        sc.batcher.batch_sync(() => {
+            events.fire()
+
+            for (const sub of events.subs) {
+                sub(action)
+            }
+        })
+    }
+}
+
+export const store_new = function(): Store {
+    const map = new Map<Value_Atom, Node<unknown>>()
+
+    const events_entries = events_new_entries(map)
+
+    const store: Store = {
         // core
-        reg: <T>(atomvalue: AtomValue<T>): T => {
-            if (map.has(atomvalue)) {
-                return map.get(atomvalue) as T
+        reg: <T>(atomvalue: Value_Atom<T>): T => {
+            {
+                const node = map.get(atomvalue)
+
+                if (node) {
+                    return node.value as T
+                }
             }
 
-            return atomvalue(store, value => {
-                map.set(atomvalue, value)
+            return atomvalue(store, {
+                cache: (value, cache_config) => {
+                    map.set(atomvalue, {
+                        value,
 
-                sc.batcher.batch_sync(() => {
-                    mapchange_event_fire()
-
-                    events_entry_change.map(event => {
-                        event({
-                            type: "post",
-
-                            key: atomvalue,
-                            value_next: value
-                        })
+                        cleanup: cache_config?.cleanup ?? null,
                     })
-                })
+
+                    events_fire_entries(events_entries, {
+                        type: "post",
+
+                        key: atomvalue,
+                        value_next: value
+                    })
+                }
             })
         },
 
-        reg_default: <T>(atomvalue: AtomValue<T>, value: T): T => {
-            if (!map.has(atomvalue)) {
-                map.set(atomvalue, value)
+        reg_default: <T>(atomvalue: Value_Atom<T>, value: T, cache_config?: Value_ApiCache_Config): T => {
+            const node = map.get(atomvalue)
 
-                sc.batcher.batch_sync(() => {
-                    mapchange_event_fire()
+            if (node) {
+                return node.value as T
+            }
 
-                    events_entry_change.map(event => {
-                        event({
-                            type: "post",
+            {
+                map.set(atomvalue, {
+                    value,
+                    cleanup: cache_config?.cleanup ?? null,
+                })
 
-                            key: atomvalue,
-                            value_next: value
-                        })
-                    })
+                events_fire_entries(events_entries, {
+                    type: "post",
+
+                    key: atomvalue,
+                    value_next: value
                 })
 
                 return value
             }
-
-            return map.get(atomvalue) as T
         },
 
         dispatch: (atomaction) => {
@@ -73,103 +115,88 @@ export const atomstore_new = function(): AtomStore {
             return map.has(key)
         },
 
-        get: <T>(key: AtomValue<T>) => {
-            if (map.has(key)) {
-                return { result: map.get(key)! as T }
+        get: <T>(key: Value_Atom<T>) => {
+            const node = map.get(key)
+
+            if (node) {
+                return { result: node.value as T }
             }
 
             return null
         },
 
-        delete: <T>(key: AtomValue<T>) => {
-            if (map.has(key)) {
-                const value = map.get(key)!
+        delete: <T>(key: Value_Atom<T>) => {
+            const node = map.get(key)
 
+            if (node) {
                 map.delete(key)
 
-                sc.batcher.batch_sync(() => {
-                    mapchange_event_fire()
+                node.cleanup?.()
 
-                    events_entry_change.map(event => {
-                        event({
-                            type: "delete",
+                events_fire_entries(events_entries, {
+                    type: "delete",
 
-                            key: key,
-                            value_prev: value
-                        })
-                    })
+                    key,
+                    value_prev: node.value,
                 })
-            } else {
-                map.delete(key)
             }
         },
 
-        set_soft: (key, value) => {
+        set_soft: (key, value, cache_config) => {
             if (!map.has(key)) {
-                map.set(key, value)
+                map.set(key, {
+                    value,
+                    cleanup: cache_config?.cleanup ?? null,
+                })
 
-                sc.batcher.batch_sync(() => {
-                    mapchange_event_fire()
+                events_fire_entries(events_entries, {
+                    type: "post",
 
-                    events_entry_change.map(event => {
-                        event({
-                            type: "post",
-
-                            key: key,
-                            value_next: value
-                        })
-                    })
+                    key: key,
+                    value_next: value
                 })
             }
         },
 
-        set_hard: (key, value) => {
-            const hadvalue = map.has(key)
+        set_hard: (key, value, cache_config) => {
             const oldvalue = map.get(key)
 
-            map.set(key, value)
-
-            sc.batcher.batch_sync(() => {
-                mapchange_event_fire()
-
-                if (hadvalue) {
-                    events_entry_change.map(event => {
-                        event({
-                            type: "patch",
-
-                            key: key,
-                            value_next: value,
-                            value_prev: oldvalue!,
-                        })
-                    })
-                } else {
-                    events_entry_change.map(event => {
-                        event({
-                            type: "post",
-
-                            key: key,
-                            value_next: value
-                        })
-                    })
-                }
+            map.set(key, {
+                value,
+                cleanup: cache_config?.cleanup ?? null,
             })
+
+            if (oldvalue) {
+                oldvalue.cleanup?.()
+
+                events_fire_entries(events_entries, {
+                    type: "patch",
+
+                    key: key,
+                    value_next: value,
+                    value_prev: oldvalue.value,
+                })
+            } else {
+                events_fire_entries(events_entries, {
+                    type: "post",
+
+                    key: key,
+                    value_next: value
+                })
+            }
         },
 
         // meta.trackers
         entries_signal: () => {
-            return map_entries
+            return events_entries.signal
         },
 
         entries_event_change_rmsub: listener => {
-            const index = events_entry_change.indexOf(listener)
-
-            if (index !== -1) {
-                events_entry_change.splice(index, 1)
-            }
+            events_entries.subs.add(listener)
         },
 
         entries_event_change_addsub: listener => {
-            events_entry_change.push(listener)
+            events_entries.subs.delete(listener)
         },
     }
 

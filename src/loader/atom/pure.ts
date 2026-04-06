@@ -1,19 +1,16 @@
 import { loader_new_pure } from "#src/loader/new/pure.js";
-import type { AtomLoader } from "#src/loader/type/AtomLoader.js";
-import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js";
-import type { Throttler } from "#src/throttler/type/Throttler.js";
-import { atomvalue_new } from "#src/value/atom/index.js";
+import type { Loader_Atom } from "#src/loader/type/loader.js";
+import type { SelectorStatic_Atom } from "#src/selector/type/selector.js";
+import type { CallBatcher } from "#src/util/callbatcher/type/batcher.js";
+import { value_atom } from "#src/value/atom/index.js";
 
-export type AtomLoader_New_Pure_Params = {
-    readonly throttler: Throttler
-    readonly connect: AtomSelectorStatic<VoidFunction>
+export type Loader_AtomPure_Params = {
+    readonly callbatcher: CallBatcher
+    readonly connect: () => VoidFunction
 }
 
-export const atomloader_new_pure = function(params: AtomLoader_New_Pure_Params): AtomLoader<[]> {
-    return atomvalue_new(store => {
-        return loader_new_pure({
-            throttler: params.throttler,
-            connect: () => params.connect(store)
-        })
+export const loader_atom_pure = function(params: SelectorStatic_Atom<Loader_AtomPure_Params>): Loader_Atom<void> {
+    return value_atom(({ reg }) => {
+        return loader_new_pure(reg(params))
     })
 }

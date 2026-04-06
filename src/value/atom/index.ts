@@ -1,11 +1,11 @@
-import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js";
-import type { AtomValue } from "#src/value/type/AtomValue.js";
+import type { SelectorStatic_Atom } from "#src/selector/type/selector.js";
+import type { Value_Atom } from "#src/value/type/value.js";
 
-export const atomvalue_new = function <T>(get: AtomSelectorStatic<T>): AtomValue<T> {
-    return (store, cache) => {
+export const value_atom = function <T>(get: SelectorStatic_Atom<T>): Value_Atom<T> {
+    return (store, api) => {
         const value = get(store)
 
-        cache(value)
+        api.cache(value)
 
         return value
     }

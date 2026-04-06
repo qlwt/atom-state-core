@@ -1,61 +1,34 @@
-import { atomfamily_new } from "#src/family/atom/index.js"
-import { family_new } from "#src/family/new/index.js"
-import type { AtomFamily } from "#src/family/type/AtomFamily.js"
-import type { Indexer } from "#src/indexer/type/indexer.js"
-import type { AtomSelectorStatic } from "#src/selector/type/AtomSelector.js"
-import { atomvalue_new } from "#src/value/atom/index.js"
+import { family_new_hash } from "#src/family/new/hash.js"
+import type { Family_Atom } from "#src/family/type/family.js"
+import type { Indexer, IndexerF } from "#src/indexing/type/indexer.js"
+import type { SelectorStatic_Atom } from "#src/selector/type/selector.js"
+import { value_atom } from "#src/value/atom/index.js"
 import type * as sc from "@qyu/signal-core"
 
-export type AtomFamily_NewIndexer_Params<Ref, Data, Filter, Param = Filter> = {
-    readonly indexer: () => Indexer<Ref, Data, Filter>
-    readonly connect: (indexer: Indexer<Ref, Data, Filter>) => AtomSelectorStatic<VoidFunction>
-
-    readonly key?: (param: Param) => unknown
-    readonly param?: (param: Param) => Filter
+export type Family_AtomIndexer_Params<Ref, Data, Filter> = {
+    readonly key: (param: Filter) => unknown
+    readonly indexer_new: IndexerF<Ref, Data, Filter>
+    readonly indexer_connect: (collector: Indexer<Ref, Data, Filter>) => VoidFunction
 }
 
-export const atomfamily_new_indexer = function <Ref, Data, Filter, Param = Filter>(
-    params: AtomFamily_NewIndexer_Params<Ref, Data, Filter, Param>
-): AtomFamily<Param, sc.OSignal<ReadonlySet<Ref>>> {
-    return atomvalue_new(({ reg }) => {
-        const indexer = params.indexer()
+export const family_atom_indexer = function <Ref, Data, Filter>(
+    params: SelectorStatic_Atom<Family_AtomIndexer_Params<Ref, Data, Filter>>
+): Family_Atom<Filter, sc.OSignal<Iterable<Ref>>> {
+    return value_atom(({ reg }) => {
+        const l_params = reg(params)
+        const indexer = l_params.indexer_new()
+        const cleanup = l_params.indexer_connect(indexer)
 
-        reg(params.connect(indexer))
+        return family_new_hash({
+            key: l_params.key ?? JSON.stringify.bind(JSON),
 
-        return family_new({
-            key: params.key ?? JSON.stringify.bind(JSON),
+            get: (param, api) => {
+                const watcher = indexer.filter([null, param])
 
-            get: (param, cache) => {
-                if (params.param) {
-                    const watcher = indexer.watcher_new(params.param(param))
+                api.cache(watcher, { cleanup })
 
-                    cache(watcher)
-
-                    return watcher
-                }
-
-                {
-                    const watcher = indexer.watcher_new(param as any as Filter)
-
-                    cache(watcher)
-
-                    return watcher
-                }
+                return watcher
             }
         })
-
-        return reg(atomfamily_new({
-            key: params.key ?? JSON.stringify.bind(JSON),
-
-            get: (param: Param) => {
-                return atomvalue_new(() => {
-                    if (params.param) {
-                        return indexer.watcher_new(params.param(param))
-                    }
-
-                    return indexer.watcher_new(param as any as Filter)
-                })
-            }
-        }))
     })
 }

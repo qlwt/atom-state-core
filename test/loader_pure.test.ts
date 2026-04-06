@@ -1,18 +1,18 @@
-import { atomloader_new_pure } from "#src/loader/atom/pure.js";
-import { atomstate_new } from "#src/state/atom/index.js";
-import { atomstore_new } from "#src/store/new/index.js";
-import { throttler_new_immediate } from "#src/throttler/new/immediate.js";
-import { throttler_new_microtask } from "#src/throttler/new/microtask.js";
+import { loader_atom_pure } from "#src/loader/atom/pure.js";
+import { state_atom } from "#src/state/atom/index.js";
+import { store_new } from "#src/store/new/index.js";
+import { throttler_new_immediate } from "#src/util/callbatcher/throttler/new/immediate.js";
+import { throttler_new_microtask } from "#src/util/callbatcher/throttler/new/microtask.js";
 import { expect, test } from "vitest";
 
 test("loader_pure.immediate", () => {
-    const atomcounter = atomstate_new(() => 0)
+    const atomcounter = state_atom(() => 0)
 
-    const atomloader = atomloader_new_pure({
-        throttler: throttler_new_immediate(),
+    const atomloader = loader_atom_pure(({ reg }) => ({
+        callbatcher: throttler_new_immediate(),
 
-        connect: store => {
-            const counter = store.reg(atomcounter)
+        connect: () => {
+            const counter = reg(atomcounter)
 
             counter.input(counter.output() + 1)
 
@@ -20,9 +20,9 @@ test("loader_pure.immediate", () => {
                 counter.input(counter.output() - 1)
             }
         }
-    })
+    }))
 
-    const atomstore = atomstore_new()
+    const atomstore = store_new()
     const loader = atomstore.reg(atomloader)
     const counter = atomstore.reg(atomcounter)
 
@@ -38,13 +38,13 @@ test("loader_pure.immediate", () => {
 })
 
 test("loader_pure.throttler", async () => {
-    const atomcounter = atomstate_new(() => 0)
+    const atomcounter = state_atom(() => 0)
 
-    const atomloader = atomloader_new_pure({
-        throttler: throttler_new_microtask(),
+    const atomloader = loader_atom_pure(({ reg }) => ({
+        callbatcher: throttler_new_microtask(),
 
-        connect: store => {
-            const counter = store.reg(atomcounter)
+        connect: () => {
+            const counter = reg(atomcounter)
 
             counter.input(counter.output() + 1)
 
@@ -52,9 +52,9 @@ test("loader_pure.throttler", async () => {
                 counter.input(counter.output() - 1)
             }
         }
-    })
+    }))
 
-    const atomstore = atomstore_new()
+    const atomstore = store_new()
     const loader = atomstore.reg(atomloader)
     const counter = atomstore.reg(atomcounter)
 

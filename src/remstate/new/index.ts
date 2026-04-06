@@ -1,91 +1,155 @@
-import type { AtomRemState_Value } from "#src/remstate/type/AtomRemote.js";
+import type { RemState, RemState_MessagePushPending } from "#src/remstate/type/remstate.js";
 import { reqstate_new_empty } from "#src/reqstate/new/empty.js";
 import { reqstate_new_fulfilled } from "#src/reqstate/new/fulfilled.js";
 import { reqstate_new_pending } from "#src/reqstate/new/pending.js";
-import { ReqState__Status, type ReqState, type ReqState_Pending } from "#src/reqstate/type/State.js";
+import { ReqState_Status, type ReqState, type ReqState_Pending } from "#src/reqstate/type/state.js";
 import * as sc from "@qyu/signal-core";
 
-export const remstate_new = function <T, PR, PM>(init: ReqState<T>): AtomRemState_Value<T, PR, PM> {
-    const state = sc.signal_new_value(init)
+function pending_new<T, PR, PM>(
+    state: sc.Signal<ReqState<T, PR, PM>>,
+    message: RemState_MessagePushPending<T, PR, PM>
+): ReqState_Pending<T, PR, PM> {
+    let finished = false
+    let interrupted = false
 
-    const promise_wrap = (input: ReqState_Pending<T, PR, PM>): ReqState<T> => {
-        let interrupted = false
+    const abort = () => {
+        if (interrupted || finished) { return }
 
-        input.request_promise.then(
-            result => {
-                if (interrupted) { return }
+        interrupted = true
 
-                const next_reqstate = input.request_interpret(result)
+        message.signal_abort?.removeEventListener("abort", abort)
 
-                switch (next_reqstate.status) {
-                    case ReqState__Status.Empty: {
-                        if (input.fallback) {
-                            state.input(reqstate_new_fulfilled(input.fallback))
-
-                        } else {
-                            state.input(next_reqstate)
-                        }
-
-                        break
-                    }
-                    case ReqState__Status.Fulfilled: {
-                        state.input(next_reqstate)
-
-                        break
-                    }
-                    case ReqState__Status.Pending: {
-                        state.input(promise_wrap(next_reqstate))
-
-                        break
-                    }
-                }
-            },
-            () => {
-                if (interrupted) { return }
-
-                state.input(reqstate_new_empty())
+        sc.batcher.batch_sync(() => {
+            if (message.fallback) {
+                state.input(reqstate_new_fulfilled(message.fallback.value))
+            } else {
+                state.input(reqstate_new_empty({}))
             }
-        )
 
-        return reqstate_new_pending({
-            optimistic: input.optimistic,
-            meta: input.meta,
-            fallback: input.fallback,
-
-            request_interpret: input.request_interpret,
-            request_promise: input.request_promise,
-
-            request_abort: () => {
-                if (!interrupted) {
-                    interrupted = true
-
-                    if (input.fallback) {
-                        state.input(reqstate_new_fulfilled(input.fallback))
-                    } else {
-                        state.input(reqstate_new_empty())
-                    }
-
-                    input.request_abort()
-                }
-            },
+            message.request_abort()
         })
     }
 
-    return sc.signal_new_pipei(state, (input: ReqState<T>) => {
-        const state_o = state.output()
+    message.signal_abort?.addEventListener("abort", abort)
 
-        if (state_o.status === ReqState__Status.Pending) {
-            state_o.request_abort()
-        }
+    message.request_promise.then(
+        result => {
+            if (interrupted) { return }
 
-        switch (input.status) {
-            case ReqState__Status.Fulfilled:
-            case ReqState__Status.Empty: {
-                return input
+            finished = true
+            message.signal_abort?.removeEventListener("abort", abort)
+
+            const next_message = message.request_interpret(result)
+
+            switch (next_message.status) {
+                case ReqState_Status.Empty: {
+                    if (message.fallback) {
+                        state.input(reqstate_new_fulfilled(message.fallback.value))
+                    } else {
+                        state.input(next_message)
+                    }
+
+                    break
+                }
+                case ReqState_Status.Fulfilled: {
+                    state.input(next_message)
+
+                    break
+                }
+                case ReqState_Status.Pending: {
+                    state.input(pending_new(state, next_message))
+
+                    break
+                }
             }
-            case ReqState__Status.Pending: {
-                return promise_wrap(input)
+        },
+        (reason) => {
+            if (interrupted) { return }
+
+            finished = true
+            message.signal_abort?.removeEventListener("abort", abort)
+
+            if (message.fallback) {
+                state.input(reqstate_new_fulfilled(
+                    message.fallback.value
+                ))
+            } else {
+                state.input(reqstate_new_empty({
+                    error: { value: reason }
+                }))
             }
         }
+    )
+
+    const result = reqstate_new_pending({
+        optimistic: message.optimistic,
+        meta: message.meta,
+        fallback: message.fallback,
+
+        request_interpret: message.request_interpret,
+        request_promise: message.request_promise,
+
+        request_abort: () => {
+            abort()
+        },
     })
+
+    return result
+}
+
+export const remstate_new = function <T, PR, PM>(init: ReqState<T>): RemState<T, PR, PM> {
+    const state = sc.signal_new_value(init)
+
+
+    return {
+        ...state,
+
+        input: message => {
+            sc.batcher.batch_sync(() => {
+                switch (message.status) {
+                    case "set-hard": {
+                        state.input(message.reqstate)
+
+                        break
+                    }
+                    case ReqState_Status.Empty: {
+                        const state_o = state.output()
+
+                        if (state_o.status === ReqState_Status.Pending) {
+                            state_o.request_abort()
+                        }
+
+                        state.input(reqstate_new_empty({
+                            error: message.error,
+                        }))
+
+                        break
+                    }
+                    case ReqState_Status.Fulfilled: {
+                        const state_o = state.output()
+
+                        if (state_o.status === ReqState_Status.Pending) {
+                            state_o.request_abort()
+                        }
+
+                        state.input(reqstate_new_fulfilled(message.data))
+
+                        break
+                    }
+                    case ReqState_Status.Pending: {
+                        const state_o = state.output()
+
+                        if (state_o.status === ReqState_Status.Pending) {
+                            state_o.request_abort()
+                        }
+
+                        state.input(pending_new(state, message))
+
+                        break
+                    }
+                }
+            })
+
+        }
+    }
 }

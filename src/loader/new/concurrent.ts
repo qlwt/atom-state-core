@@ -1,5 +1,5 @@
-import type { AtomLoader_Value } from "#src/loader/type/AtomLoader.js"
-import type { Throttler } from "#src/throttler/type/Throttler.js"
+import type { Loader } from "#src/loader/type/loader.js"
+import type { CallBatcher } from "#src/util/callbatcher/type/batcher.js"
 
 enum Status {
     Idle,
@@ -9,30 +9,27 @@ enum Status {
     ReInitializationScheduled
 }
 
-type State<P extends readonly unknown[]> = (
+type State<Param> = (
     | {
         readonly status: Status.Idle
     }
     | {
         readonly status: Status.Connected
-        readonly top: P
+        readonly top: Param
         readonly connection_terminate: VoidFunction
     }
     | {
         readonly status: Status.TerminationScheduled
-        readonly operation_cancel: VoidFunction
         readonly connection_terminate: VoidFunction
     }
     | {
         readonly status: Status.InitializationScheduled
-        readonly operation_cancel: VoidFunction
-        readonly top: P
+        readonly top: Param
     }
     | {
         readonly status: Status.ReInitializationScheduled
-        readonly operation_cancel: VoidFunction
         readonly connection_terminate: VoidFunction
-        readonly top: P
+        readonly top: Param
     }
 )
 
@@ -50,146 +47,130 @@ const findtop = function <T>(list: readonly T[], comparator: (a: T, b: T) => num
     return top
 }
 
-export type Loader_New_Concurrent_Params<P extends readonly unknown[]> = {
-    readonly throttler: Throttler
-    readonly comparator: (a: P, b: P) => number
-    readonly connect: (...params: P) => VoidFunction
+export type Loader_NewConcurrent_Params<Param> = {
+    readonly callbatcher: CallBatcher
+    readonly connect: (params: Param) => VoidFunction
+    readonly comparator: (a: Param, b: Param) => number
 }
 
-export const loader_new_concurrent = function <P extends readonly unknown[]>(
-    params_loader: Loader_New_Concurrent_Params<P>
-): AtomLoader_Value<P> {
-    const { comparator, throttler, connect } = params_loader
+export const loader_new_concurrent = function <Param>(
+    params_loader: Loader_NewConcurrent_Params<Param>
+): Loader<Param> {
+    const { comparator, callbatcher: throttler, connect } = params_loader
 
-    let state = { status: Status.Idle } as State<P>
+    let state = { status: Status.Idle } as State<Param>
 
-    const stack = new Array<P>()
+    const stack = new Array<Param>()
 
     return {
-        request: (...params) => {
-            stack.push(params)
+        request: (param) => {
+            stack.push(param)
 
             switch (state.status) {
                 case Status.Idle: {
-                    const throttler_controls = throttler(() => {
-                        state = {
-                            status: Status.Connected,
-                            top: params,
-                            connection_terminate: connect(...params)
-                        }
-                    })
-
                     state = {
                         status: Status.InitializationScheduled,
-                        top: params,
-                        operation_cancel: throttler_controls.interrupt,
+                        top: param,
                     }
 
-                    throttler_controls.emit()
+                    throttler.emit(() => {
+                        state = {
+                            status: Status.Connected,
+                            top: param,
+                            connection_terminate: connect(param)
+                        }
+                    })
 
                     break
                 }
                 case Status.ReInitializationScheduled: {
-                    if (comparator(params, state.top) >= 0) {
-                        state.operation_cancel()
+                    if (comparator(param, state.top) >= 0) {
+                        throttler.interrupt()
 
                         const { connection_terminate } = state
 
-                        const throttler_controls = throttler(() => {
+                        state = {
+                            status: Status.ReInitializationScheduled,
+                            top: param,
+                            connection_terminate,
+                        }
+
+                        throttler.emit(() => {
                             connection_terminate()
 
                             state = {
                                 status: Status.Connected,
-                                top: params,
-                                connection_terminate: connect(...params)
+                                top: param,
+                                connection_terminate: connect(param)
                             }
                         })
-
-                        state = {
-                            status: Status.ReInitializationScheduled,
-                            top: params,
-                            connection_terminate,
-                            operation_cancel: throttler_controls.interrupt
-                        }
-
-                        throttler_controls.emit()
                     }
 
                     break
                 }
                 case Status.Connected: {
-                    if (comparator(params, state.top) >= 0) {
+                    if (comparator(param, state.top) >= 0) {
                         const { connection_terminate } = state
 
-                        const throttler_controls = throttler(() => {
+
+                        state = {
+                            status: Status.ReInitializationScheduled,
+                            top: param,
+                            connection_terminate,
+                        }
+
+                        throttler.emit(() => {
                             connection_terminate()
 
                             state = {
                                 status: Status.Connected,
-                                top: params,
-                                connection_terminate: connect(...params)
+                                top: param,
+                                connection_terminate: connect(param)
                             }
                         })
-
-                        state = {
-                            status: Status.ReInitializationScheduled,
-                            top: params,
-                            connection_terminate,
-
-                            operation_cancel: throttler_controls.interrupt
-                        }
-
-                        throttler_controls.emit()
                     }
 
                     break
                 }
                 case Status.TerminationScheduled: {
-                    state.operation_cancel()
+                    throttler.interrupt()
 
                     const { connection_terminate } = state
 
-                    const throttler_controls = throttler(() => {
+                    state = {
+                        status: Status.ReInitializationScheduled,
+                        top: param,
+                        connection_terminate,
+                    }
+
+                    throttler.emit(() => {
                         connection_terminate()
 
                         state = {
                             status: Status.Connected,
-                            top: params,
-                            connection_terminate: connect(...params)
+                            top: param,
+                            connection_terminate: connect(param)
                         }
                     })
-
-                    state = {
-                        status: Status.ReInitializationScheduled,
-                        top: params,
-                        connection_terminate,
-
-                        operation_cancel: throttler_controls.interrupt
-                    }
-
-                    throttler_controls.emit()
 
                     break
                 }
                 case Status.InitializationScheduled: {
-                    if (comparator(params, state.top) >= 0) {
-                        state.operation_cancel()
-
-                        const throttler_controls = throttler(() => {
-                            state = {
-                                status: Status.Connected,
-                                top: params,
-                                connection_terminate: connect(...params)
-                            }
-                        })
+                    if (comparator(param, state.top) >= 0) {
+                        throttler.interrupt()
 
                         state = {
                             status: Status.InitializationScheduled,
-                            top: params,
-                            operation_cancel: throttler_controls.interrupt
+                            top: param,
                         }
 
-                        throttler_controls.emit()
+                        throttler.emit(() => {
+                            state = {
+                                status: Status.Connected,
+                                top: param,
+                                connection_terminate: connect(param)
+                            }
+                        })
                     }
 
                     break
@@ -197,59 +178,53 @@ export const loader_new_concurrent = function <P extends readonly unknown[]>(
             }
 
             return () => {
-                const index = stack.indexOf(params)
+                const index = stack.indexOf(param)
 
                 if (index !== -1) {
                     stack.splice(index, 1)
 
                     switch (state.status) {
                         case Status.Connected: {
-                            if (state.top === params) {
+                            if (state.top === param) {
                                 const { connection_terminate } = state
                                 const next_top = findtop(stack, comparator)
 
                                 if (next_top === undefined) {
-                                    const throttler_controls = throttler(() => {
+                                    state = {
+                                        status: Status.TerminationScheduled,
+                                        connection_terminate: state.connection_terminate,
+                                    }
+
+                                    throttler.emit(() => {
                                         connection_terminate()
 
                                         state = {
                                             status: Status.Idle
                                         }
                                     })
-
+                                } else {
                                     state = {
-                                        status: Status.TerminationScheduled,
-                                        operation_cancel: throttler_controls.interrupt,
-                                        connection_terminate: state.connection_terminate,
+                                        status: Status.ReInitializationScheduled,
+                                        top: next_top,
+                                        connection_terminate,
                                     }
 
-                                    throttler_controls.emit()
-                                } else {
-                                    const throttler_controls = throttler(() => {
+                                    throttler.emit(() => {
                                         connection_terminate()
 
                                         state = {
                                             status: Status.Connected,
                                             top: next_top,
-                                            connection_terminate: connect(...next_top),
+                                            connection_terminate: connect(next_top),
                                         }
                                     })
-
-                                    state = {
-                                        status: Status.ReInitializationScheduled,
-                                        top: next_top,
-                                        connection_terminate,
-                                        operation_cancel: throttler_controls.interrupt
-                                    }
-
-                                    throttler_controls.emit()
                                 }
                             }
 
                             break
                         }
                         case Status.InitializationScheduled: {
-                            state.operation_cancel()
+                            throttler.interrupt()
 
                             state = {
                                 status: Status.Idle
@@ -258,47 +233,41 @@ export const loader_new_concurrent = function <P extends readonly unknown[]>(
                             break
                         }
                         case Status.ReInitializationScheduled: {
-                            if (state.top === params) {
-                                state.operation_cancel()
+                            if (state.top === param) {
+                                throttler.interrupt()
 
                                 const { connection_terminate } = state
                                 const next_top = findtop(stack, comparator)
 
                                 if (next_top === undefined) {
-                                    const throttler_controls = throttler(() => {
+                                    state = {
+                                        status: Status.TerminationScheduled,
+                                        connection_terminate: state.connection_terminate,
+                                    }
+
+                                    throttler.emit(() => {
                                         connection_terminate()
 
                                         state = {
                                             status: Status.Idle
                                         }
                                     })
-
+                                } else {
                                     state = {
-                                        status: Status.TerminationScheduled,
-                                        operation_cancel: throttler_controls.interrupt,
-                                        connection_terminate: state.connection_terminate,
+                                        status: Status.ReInitializationScheduled,
+                                        top: next_top,
+                                        connection_terminate,
                                     }
 
-                                    throttler_controls.emit()
-                                } else {
-                                    const throttler_controls = throttler(() => {
+                                    throttler.emit(() => {
                                         connection_terminate()
 
                                         state = {
                                             status: Status.Connected,
                                             top: next_top,
-                                            connection_terminate: connect(...next_top)
+                                            connection_terminate: connect(next_top)
                                         }
                                     })
-
-                                    state = {
-                                        status: Status.ReInitializationScheduled,
-                                        top: next_top,
-                                        connection_terminate,
-                                        operation_cancel: throttler_controls.interrupt
-                                    }
-
-                                    throttler_controls.emit()
                                 }
                             }
 

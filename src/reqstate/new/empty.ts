@@ -1,7 +1,12 @@
-import { ReqState__Status, type ReqState_Empty } from "#src/reqstate/type/State.js"
+import { ReqState_Status, type ReqState_Empty } from "#src/reqstate/type/state.js"
 
-export const reqstate_new_empty = function(): ReqState_Empty {
+export type ReqState_NewEmty_Params = {
+    readonly error?: { readonly value: any } | null
+}
+
+export const reqstate_new_empty = function(params: ReqState_NewEmty_Params): ReqState_Empty {
     return {
-        status: ReqState__Status.Empty
+        status: ReqState_Status.Empty,
+        error: params.error ?? null,
     }
 }

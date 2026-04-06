@@ -1,22 +1,22 @@
-import { atomloader_new_concurrent } from "#src/loader/atom/concurrent.js";
-import { atomstate_new } from "#src/state/atom/index.js";
-import { atomstore_new } from "#src/store/new/index.js";
-import { throttler_new_immediate } from "#src/throttler/new/immediate.js";
-import { throttler_new_microtask } from "#src/throttler/new/microtask.js";
+import { loader_atom_concurrent } from "#src/loader/atom/concurrent.js";
+import { state_atom } from "#src/state/atom/index.js";
+import { store_new } from "#src/store/new/index.js";
+import { throttler_new_immediate } from "#src/util/callbatcher/throttler/new/immediate.js";
+import { throttler_new_microtask } from "#src/util/callbatcher/throttler/new/microtask.js";
 import { expect, test } from "vitest";
 
 test("loader_concurrent.immediate", () => {
-    const atomcounter = atomstate_new<number[]>(() => [])
+    const atomcounter = state_atom<number[]>(() => [])
 
-    const atomloader = atomloader_new_concurrent({
-        throttler: throttler_new_immediate(),
+    const atomloader = loader_atom_concurrent<number>(({ reg }) => ({
+        callbatcher: throttler_new_immediate(),
 
-        comparator: (a: [number], b: [number]) => {
-            return a[0] - b[0]
+        comparator: (a, b) => {
+            return a - b
         },
 
-        connect: num => store => {
-            const counter = store.reg(atomcounter)
+        connect: num => {
+            const counter = reg(atomcounter)
 
             counter.input([...counter.output(), num])
 
@@ -24,9 +24,9 @@ test("loader_concurrent.immediate", () => {
                 counter.input(counter.output().slice(0, -1))
             }
         }
-    })
+    }))
 
-    const atomstore = atomstore_new()
+    const atomstore = store_new()
     const loader = atomstore.reg(atomloader)
     const counter = atomstore.reg(atomcounter)
 
@@ -50,17 +50,17 @@ test("loader_concurrent.immediate", () => {
 })
 
 test("loader_concurrent.throttler", async () => {
-    const atomcounter = atomstate_new<number[]>(() => [])
+    const atomcounter = state_atom<number[]>(() => [])
 
-    const atomloader = atomloader_new_concurrent({
-        throttler: throttler_new_microtask(),
+    const atomloader = loader_atom_concurrent<number>(({ reg }) => ({
+        callbatcher: throttler_new_microtask(),
 
-        comparator: (a: [number], b: [number]) => {
-            return a[0] - b[0]
+        comparator: (a, b) => {
+            return a - b
         },
 
-        connect: num => store => {
-            const counter = store.reg(atomcounter)
+        connect: num => {
+            const counter = reg(atomcounter)
 
             counter.input([...counter.output(), num])
 
@@ -68,9 +68,9 @@ test("loader_concurrent.throttler", async () => {
                 counter.input(counter.output().slice(0, -1))
             }
         }
-    })
+    }))
 
-    const atomstore = atomstore_new()
+    const atomstore = store_new()
     const loader = atomstore.reg(atomloader)
     const counter = atomstore.reg(atomcounter)
 
