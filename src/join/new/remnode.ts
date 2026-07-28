@@ -289,7 +289,7 @@ export const join_new_remnode = function <
             const joins_s = sc.osignal_new_pipe(joins_rawprops_s, (joins_rawprops): Join_Option<Join_NewRemNode_Joins<RDef, Joins>> => {
                 const joins: Partial<Join_NewRemNode_Joins<RDef, Joins>> = {}
 
-                for (const key of Object.keys(joins) as (keyof typeof joins)[]) {
+                for (const key of Object.keys(joins_rawprops) as (keyof typeof joins)[]) {
                     const join = joins_rawprops[key]!
 
                     switch (join.kind) {
